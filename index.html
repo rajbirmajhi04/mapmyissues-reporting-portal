@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Civic Issues - Login Page</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="login-container">
+    <h1>Login Now</h1>
+    <form id="loginForm" class="login-form" autocomplete="off">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="citizen1 or admin1" required />
+      <label for="role">Role</label>
+      <select id="role" name="role" required>
+        <option value="" disabled selected>Select role</option>
+        <option value="citizen">Citizen</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button type="submit" class="btn-primary">Login</button>
+    </form>
+    <p class="demo-note">Use username <code>citizen1</code> or <code>admin1</code> with matching role.</p>
+  </main>
+
+  <script>
+    // Simple login handler
+    document.getElementById('loginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const username = e.target.username.value.trim();
+      const role = e.target.role.value;
+
+      // Demo validation: username must be citizen1 or admin1 matching role
+      if (
+        (role === 'citizen' && username.toLowerCase() === 'citizen1') ||
+        (role === 'admin' && username.toLowerCase() === 'admin1')
+      ) {
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('role', role);
+        window.location.href = 'dashboard.html';
+      } else {
+        alert('Invalid username or role combination. Use citizen1 or admin1 with correct role.');
+      }
+    });
+  </script>
+</body>
+</html>

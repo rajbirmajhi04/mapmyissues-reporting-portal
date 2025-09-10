@@ -1,0 +1,356 @@
+/* Reset & base */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+h1, h2, h3 {
+  margin: 0 0 0.5em 0;
+}
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+button:focus {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+}
+
+/* Login page */
+.login-container {
+  max-width: 360px;
+  margin: 5vh auto;
+  background: white;
+  padding: 2em;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgb(0 0 0 / 0.1);
+  text-align: center;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+.login-form label {
+  text-align: left;
+  font-weight: 600;
+}
+.login-form input,
+.login-form select {
+  padding: 0.5em;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.login-form input:focus,
+.login-form select:focus {
+  border-color: #005fcc;
+  outline: none;
+}
+.btn-primary {
+  background-color: #005fcc;
+  color: white;
+  padding: 0.75em;
+}
+.btn-primary:hover {
+  background-color: #004bb5;
+}
+.demo-note {
+  margin-top: 1em;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* Header */
+.header {
+  background-color: #005fcc;
+  color: white;
+  padding: 1em 2em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+#userGreeting {
+  font-weight: 600;
+}
+.btn-secondary {
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 0.5em 1em;
+}
+.btn-secondary:hover {
+  background-color: #c7c7c7;
+}
+
+/* Dashboard layout */
+.dashboard-container {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 72px);
+  overflow: hidden;
+}
+.left-panel {
+  width: 320px;
+  background: white;
+  padding: 1.5em;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+}
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1em 1.5em;
+  overflow-y: auto;
+}
+
+/* Board columns */
+.board-columns {
+  display: flex;
+  gap: 1em;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 1em;
+}
+.board-column {
+  background: #fafafa;
+  border-radius: 6px;
+  flex: 1 1 250px;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+}
+.board-column h2 {
+  background: #e9ecef;
+  padding: 0.5em 1em;
+  border-bottom: 1px solid #ddd;
+  font-size: 1.1em;
+  text-align: center;
+}
+.cards-container {
+  padding: 0.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+
+/* Issue card */
+.issue-card {
+  background: white;
+  border-radius: 6px;
+  padding: 0.75em 1em;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  border-left: 6px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  font-size: 0.9em;
+  position: relative;
+}
+.issue-card .type {
+  font-weight: 700;
+  font-size: 1em;
+  text-transform: capitalize;
+}
+.issue-card .description {
+  font-style: italic;
+  color: #555;
+}
+.issue-card .location,
+.issue-card .coordinates,
+.issue-card .department,
+.issue-card .expense,
+.issue-card .votes,
+.issue-card .priority,
+.issue-card .status {
+  font-size: 0.85em;
+  color: #444;
+}
+.issue-card .votes {
+  font-weight: 600;
+  color: #007bff;
+}
+.issue-card .priority {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.issue-card .photo {
+  margin-top: 0.5em;
+  max-width: 100%;
+  border-radius: 4px;
+  object-fit: contain;
+  max-height: 120px;
+  border: 1px solid #ccc;
+}
+.issue-card .btn-upvote {
+  background-color: #007bff;
+  color: white;
+  padding: 0.3em 0.6em;
+  font-size: 0.85em;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-top: 0.5em;
+}
+.issue-card .btn-upvote:disabled {
+  background-color: #a0c8ff;
+  cursor: default;
+}
+.issue-card .admin-controls {
+  margin-top: 0.5em;
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+.issue-card select,
+.issue-card button.advance-status {
+  padding: 0.3em 0.5em;
+  font-size: 0.85em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.issue-card button.advance-status {
+  background-color: #28a745;
+  color: white;
+  font-weight: 600;
+}
+.issue-card button.advance-status:disabled {
+  background-color: #a0dca0;
+  cursor: default;
+}
+
+/* Priority border colors */
+.priority-low {
+  border-left-color: #6c757d; /* gray */
+}
+.priority-medium {
+  border-left-color: #ffc107; /* yellow */
+}
+.priority-immediate {
+  border-left-color: #fd7e14; /* orange */
+}
+.priority-urgent {
+  border-left-color: #dc3545; /* red */
+}
+
+/* Left panel forms */
+form.issue-form,
+form.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+form label {
+  font-weight: 600;
+}
+form input[type="text"],
+form input[type="number"],
+form select,
+form textarea {
+  padding: 0.5em;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+form input[type="file"] {
+  padding: 0.3em 0;
+}
+form textarea {
+  min-height: 80px;
+}
+form button.submit-btn {
+  background-color: #005fcc;
+  color: white;
+  padding: 0.75em;
+  font-weight: 700;
+  border-radius: 4px;
+  border: none;
+}
+form button.submit-btn:hover {
+  background-color: #004bb5;
+}
+
+/* Location autosuggest */
+.autosuggest-list {
+  position: relative;
+}
+.autosuggest-list ul {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  max-height: 120px;
+  overflow-y: auto;
+  z-index: 10;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.autosuggest-list ul li {
+  padding: 0.4em 0.6em;
+  cursor: pointer;
+}
+.autosuggest-list ul li:hover,
+.autosuggest-list ul li.active {
+  background-color: #005fcc;
+  color: white;
+}
+
+/* Insights */
+.insights {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  margin-top: auto;
+  font-size: 0.9em;
+  color: #333;
+}
+.insights h3 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.3em;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .dashboard-container {
+    flex-direction: column;
+    height: auto;
+  }
+  .left-panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+  .board-columns {
+    flex-wrap: wrap;
+  }
+  .board-column {
+    min-width: 100%;
+    max-height: 300px;
+  }
+}
