@@ -1,103 +1,25 @@
-// app.js
-// Civic Issues Reporting Platform JS
-// Handles login session, issue management, UI rendering, polling for live sync
-
 (() => {
-  // Constants
-  const STORAGE_KEY = 'civic_issues_data';
+  /* ===========================
+     Constants & Demo Data
+     =========================== */
+  const STORAGE_KEY = 'civic_issues_data_v2';
   const POLL_INTERVAL_MS = 1500;
-const DEMO_ISSUES = [
-  {
-    id: 'demo1',
-    type: 'pothole',
-    description: 'Big pothole near Master Canteen square, causing traffic jams.',
-    location: 'Master Canteen Square, Bhubaneswar',
-    coordinates: { lat: 20.2686, lng: 85.8430 },
-    photo: '',
-    votes: 3,
-    priority: 'medium',
-    status: 'recent',
-    department: 'Road Maintenance',
-    expense: 15000, // 
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2 days ago
-    votedBy: ['citizen1']
-  },
-  {
-    id: 'demo2',
-    type: 'streetlight',
-    description: 'Streetlight not working near KIIT Square.',
-    location: 'KIIT Square, Bhubaneswar',
-    coordinates: { lat: 20.3551, lng: 85.8192 },
-    photo: '',
-    votes: 5,
-    priority: 'immediate',
-    status: 'queue',
-    department: 'Electrical',
-    expense: 2500, 
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1, // 1 day ago
-    votedBy: ['citizen1', 'user2', 'user3', 'user4', 'user5']
-  },
-  {
-    id: 'demo3',
-    type: 'garbage',
-    description: 'Garbage pile-up near Rupali Square bus stop.',
-    location: 'Rupali Square, Bhubaneswar',
-    coordinates: { lat: 20.2940, lng: 85.8253 },
-    photo: '',
-    votes: 1,
-    priority: 'low',
-    status: 'inprogress',
-    department: 'Sanitation',
-    expense: 800, 
-    createdAt: Date.now() - 1000 * 60 * 60 * 12, // 12 hours ago
-    votedBy: ['user6']
-  }
-];
+  const AUTOSUGGEST_DEBOUNCE_MS = 300;
+  const DUPLICATE_DISTANCE_THRESHOLD = 0.0005;
 
-  // Location suggestions for autosuggest
   const LOCATION_SUGGESTIONS = [
-
-  'Janpath Road',
-  'Sahid Nagar',
-  'Nayapalli',
-  'Jaydev Vihar',
-  'Chandrasekharpur',
-  'Khandagiri',
-  'Patia',
-  'Bapuji Nagar',
-  'Bomikhal',
-  'CRP Square',
-  'KIIT Road',
-  'Baramunda',
-  'Unit-1 Market',
-  'Vani Vihar',
-  'Rasulgarh',
-  'Laxmi Sagar',
-  'Acharya Vihar',
-  'Jagamara',
-  'Palasuni',
-  'Mancheswar',
-
+    'Janpath Road','Sahid Nagar','Nayapalli','Jaydev Vihar','Chandrasekharpur','Khandagiri',
+    'Patia','Bapuji Nagar','Bomikhal','CRP Square','KIIT Road','Baramunda','Unit-1 Market',
+    'Vani Vihar','Rasulgarh','Laxmi Sagar','Acharya Vihar','Jagamara','Palasuni','Mancheswar',
   ];
 
-  // Issue types for dropdown
   const ISSUE_TYPES = [
-    'pothole',
-    'streetlight',
-    'garbage',
-    'water leak',
-    'sidewalk damage',
-    'traffic signal',
-    'graffiti',
-    'parks maintenance',
-    'drainage',
-    'noise complaint'
+    'pothole','streetlight','garbage','water leak','sidewalk damage',
+    'traffic signal','graffiti','parks maintenance','drainage','noise complaint','others'
   ];
 
-  // Priority order for advancing status
   const STATUS_ORDER = ['recent', 'queue', 'inprogress', 'completed'];
 
-  // Priority display names and colors
   const PRIORITY_DISPLAY = {
     low: 'Low',
     medium: 'Medium',
@@ -105,135 +27,210 @@ const DEMO_ISSUES = [
     urgent: 'Urgent',
   };
 
-  // Departments for demo
-  const DEPARTMENTS = ['Road Maintenance', 'Electrical', 'Sanitation', 'Waterworks', 'Parks & Rec'];
+  const PRIORITY_RANK = { urgent: 3, immediate: 2, medium: 1, low: 0 };
 
-  // Global state
+  const DEPARTMENTS = [
+    'Road Maintenance','Electrical','Sanitation','Waterworks','Parks & Rec',
+    'Public Safety','Transportation','Housing & Urban Development','Environmental Services',
+    'Health & Human Services','Planning & Zoning','Information Technology','Finance & Budget',
+    'Emergency Management','Community Development'
+  ];
+
+  const DEMO_ISSUES = [
+    {
+      id: 'demo1',
+      type: 'pothole',
+      description: 'Big pothole near Master Canteen square, causing traffic jams.',
+      location: 'Master Canteen Square, Bhubaneswar',
+      coordinates: { lat: 20.2686, lng: 85.8430 },
+      photo: '',
+      votes: 3,
+      priority: 'medium',
+      status: 'recent',
+      department: 'Road Maintenance',
+      expense: 15000,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
+      votedBy: ['citizen1']
+    },
+    {
+      id: 'demo2',
+      type: 'streetlight',
+      description: 'Streetlight not working near KIIT Square.',
+      location: 'KIIT Square, Bhubaneswar',
+      coordinates: { lat: 20.3551, lng: 85.8192 },
+      photo: '',
+      votes: 5,
+      priority: 'immediate',
+      status: 'queue',
+      department: 'Electrical',
+      expense: 2500,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1,
+      votedBy: ['citizen1','user2','user3','user4','user5']
+    },
+    {
+      id: 'demo3',
+      type: 'garbage',
+      description: 'Garbage pile-up near Rupali Square bus stop.',
+      location: 'Rupali Square, Bhubaneswar',
+      coordinates: { lat: 20.2940, lng: 85.8253 },
+      photo: '',
+      votes: 1,
+      priority: 'low',
+      status: 'inprogress',
+      department: 'Sanitation',
+      expense: 800,
+      createdAt: Date.now() - 1000 * 60 * 60 * 12,
+      votedBy: ['user6']
+    }
+  ];
+
+  /* ===========================
+     App State & DOM refs
+     =========================== */
   let issues = [];
-  let username = null;  
+  let username = null;
   let role = null;
   let pollTimer = null;
-  let autosuggestTimeout = null;
+  let autosuggestTimer = null;
+  let lastSavedAt = 0;
 
-  // DOM elements (will be set in init)
+  // DOM refs set in init
   let userGreetingEl, logoutBtn, leftPanel, recentColumn, queueColumn, inprogressColumn, completedColumn, insightsSection;
 
-  // Initialize the application
-  function init() {
-    // Check if user is logged in
-    username = sessionStorage.getItem('username');
-    role = sessionStorage.getItem('role');
-    
-    if (!username || !role) {
-      window.location.href = 'index.html';
-      return;
-    }
-
-    // Get DOM elements
-    userGreetingEl = document.getElementById('userGreeting');
-    logoutBtn = document.getElementById('logoutBtn');
-    leftPanel = document.getElementById('leftPanel');
-    recentColumn = document.getElementById('recentColumn');
-    queueColumn = document.getElementById('queueColumn');
-    inprogressColumn = document.getElementById('inprogressColumn');
-    completedColumn = document.getElementById('completedColumn');
-    insightsSection = document.getElementById('insightsSection');
-
-    // Setup event listeners
-    setupEventListeners();
-
-    // Load data and render UI
-    loadIssues();
-    renderUI();
-    
-    // Start polling for live updates
-    startPolling();
-  }
-
-  // Setup event listeners
-  function setupEventListeners() {
-    // Logout button
-    logoutBtn.addEventListener('click', () => {
-      sessionStorage.clear();
-      window.location.href = 'index.html';
-    });
-
-    // Handle clicks anywhere to close autosuggest
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.autosuggest-list')) {
-        closeAutosuggest();
-      }
-    });
-  }
-
-  // Utility: Generate unique ID
+  /* ===========================
+     Utilities
+     =========================== */
   function generateId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
     return 'id-' + Math.random().toString(36).substr(2, 9);
   }
 
-  // Utility: Save issues to localStorage
-  function saveIssues() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(issues));
+  function now() {
+    return Date.now();
   }
 
-  // Utility: Load issues from localStorage, initialize demo if empty
-  function loadIssues() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      try {
-        issues = JSON.parse(data);
-      } catch {
-        issues = [];
-      }
+  function saveIssues() {
+    const payload = {
+      issues,
+      lastUpdated: now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    lastSavedAt = payload.lastUpdated;
+  }
+
+  function loadIssues(forceInitDemo = false) {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw || forceInitDemo) {
+      issues = DEMO_ISSUES.map(i => ({ ...i }));
+      saveIssues();
+      return;
     }
-    if (!issues.length) {
-      issues = DEMO_ISSUES.map(issue => ({ ...issue }));
+    try {
+      const parsed = JSON.parse(raw);
+      issues = Array.isArray(parsed.issues) ? parsed.issues : [];
+      lastSavedAt = parsed.lastUpdated || 0;
+    } catch (e) {
+      console.error('Failed to parse stored issues:', e);
+      issues = DEMO_ISSUES.map(i => ({ ...i }));
       saveIssues();
     }
   }
 
-  // Utility: Format coordinates nicely
   function formatCoords(coords) {
-    return `Lat: ${coords.lat.toFixed(4)}, Lng: ${coords.lng.toFixed(4)}`;
+    if (!coords) return '';
+    return `Lat: ${Number(coords.lat).toFixed(10)}, Lng: ${Number(coords.lng).toFixed(10)}`;
   }
 
-  // Utility: Format currency
+  const INR_FORMATTER = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
   function formatCurrency(num) {
-    return `₹${num.toLocaleString()}`;
+    if (!isFinite(num)) return '₹0';
+    return INR_FORMATTER.format(num);
   }
 
-  // Utility: Capitalize first letter
-  function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  function capitalize(s = '') {
+    if (!s) return '';
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  // Utility: Get priority CSS class
   function priorityClass(priority) {
-    return `priority-${priority}`;
+    return `priority-${priority || 'low'}`;
   }
 
-  // Render the entire UI based on user role
+  function notify(msg, timeout = 2500) {
+    // simple non-blocking notification element
+    let n = document.getElementById('appNotify');
+    if (!n) {
+      n = document.createElement('div');
+      n.id = 'appNotify';
+      n.style.position = 'fixed';
+      n.style.right = '1rem';
+      n.style.bottom = '1rem';
+      n.style.background = '#222';
+      n.style.color = '#fff';
+      n.style.padding = '0.6rem 1rem';
+      n.style.borderRadius = '6px';
+      n.style.zIndex = 9999;
+      n.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+      document.body.appendChild(n);
+    }
+    n.textContent = msg;
+    n.style.opacity = 1;
+    clearTimeout(n._t);
+    n._t = setTimeout(() => {
+      n.style.transition = 'opacity 300ms';
+      n.style.opacity = 0;
+    }, timeout);
+  }
+
+  /* ===========================
+     Sorting & helpers
+     =========================== */
+  function sortIssuesForColumn(list, status) {
+    // sort by: priority rank desc, votes desc, createdAt desc
+    return list
+      .filter(i => i.status === status)
+      .sort((a, b) => {
+        const pr = (PRIORITY_RANK[b.priority] || 0) - (PRIORITY_RANK[a.priority] || 0);
+        if (pr !== 0) return pr;
+        if ((b.votes || 0) !== (a.votes || 0)) return (b.votes || 0) - (a.votes || 0);
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+  }
+
+  function findIssueById(id) {
+    return issues.find(i => i.id === id);
+  }
+
+  function distanceApprox(a, b) {
+    if (!a || !b) return Infinity;
+    const dLat = a.lat - b.lat;
+    const dLng = a.lng - b.lng;
+    return Math.sqrt(dLat * dLat + dLng * dLng);
+  }
+
+  function isDuplicateNearby(type, coords) {
+    if (!coords) return false;
+    return issues.some(i => {
+      if (i.type !== type) return false;
+      const d = distanceApprox(i.coordinates, coords);
+      return d <= DUPLICATE_DISTANCE_THRESHOLD;
+    });
+  }
+
+  /* ===========================
+     Rendering
+     =========================== */
   function renderUI() {
     if (!userGreetingEl) return;
-
-    // Update user greeting
     userGreetingEl.textContent = `Welcome, ${username} (${role})`;
-
-    // Render left panel based on role
     renderLeftPanel();
-
-    // Render board columns
     renderBoardColumns();
-
-    // Render insights for citizens
-    if (role === 'citizen') {
-      renderInsights();
-    } else {
-      insightsSection.innerHTML = '';
-    }
+    if (role === 'citizen') renderInsights();
+    else insightsSection.innerHTML = '';
   }
 
-  // Render left panel (different for citizen vs admin)
   function renderLeftPanel() {
     if (role === 'citizen') {
       renderCitizenPanel();
@@ -242,178 +239,76 @@ const DEMO_ISSUES = [
     }
   }
 
-  // Render citizen issue submission form
   function renderCitizenPanel() {
     leftPanel.innerHTML = `
       <h2>Report an Issue</h2>
-      <form id="issueForm" class="issue-form">
+      <form id="issueForm" class="issue-form" aria-label="Report an issue">
+
         <div>
           <label for="issueType">Issue Type</label>
-          <select id="issueType" name="type" required>
-            <option value="" disabled selected>Select issue type</option>
-            ${ISSUE_TYPES.map(type => `<option value="${type}">${capitalize(type)}</option>`).join('')}
-          </select>
+          <input 
+            type="text" 
+            id="issueType" 
+            name="type" 
+            placeholder="Enter issue type..." 
+            list="issueTypeOptions" 
+            required 
+            aria-required="true"
+            autocomplete="off"
+            style="width: 100%; padding: 0.4em; box-sizing: border-box;"
+          >
+          <datalist id="issueTypeOptions">
+            ${ISSUE_TYPES.map(type => `<option value="${capitalize(type)}"></option>`).join('')}
+          </datalist>
         </div>
-        
+
         <div>
           <label for="issueDescription">Description</label>
-          <textarea id="issueDescription" name="description" placeholder="Describe the issue in detail..." required></textarea>
+          <textarea id="issueDescription" name="description" placeholder="Describe the issue in detail..." required rows="5" maxlength="500" style="resize: none; width: 100%;"></textarea>
+          <small id="descHelp" class="form-text">Maximum 500 characters.</small>
         </div>
-        
-        <div class="autosuggest-list">
+
+        <div class="autosuggest-list" style="position: relative;">
           <label for="issueLocation">Location</label>
-          <input type="text" id="issueLocation" name="location" placeholder="Start typing location..." required>
-          <ul id="locationSuggestions" style="display: none;"></ul>
+          <input type="text" id="issueLocation" name="location" placeholder="Start typing location..." required aria-autocomplete="list" aria-haspopup="true" aria-expanded="false" autocomplete="off">
+          <ul id="locationSuggestions" role="listbox" style="display:none; position:absolute; z-index:10; left:0; right:0; max-height:180px; overflow:auto; background:#fff; border:1px solid #ddd;"></ul>
         </div>
-        
-        <div>
-          <label for="issueLat">Latitude</label>
-          <input type="number" id="issueLat" name="lat" step="0.0001" placeholder="40.7128" required>
+
+        <div style="display: flex; gap: 1em;">
+          <div style="flex: 1;">
+            <label for="issueLat">Latitude</label>
+            <input type="number" id="issueLat" name="lat" step="0.0001" placeholder="0.00" required style="width: 100%;">
+          </div>
+          <div style="flex: 1;">
+            <label for="issueLng">Longitude</label>
+            <input type="number" id="issueLng" name="lng" step="0.0001" placeholder="0.00" required style="width: 100%;">
+          </div>
         </div>
-        
-        <div>
-          <label for="issueLng">Longitude</label>
-          <input type="number" id="issueLng" name="lng" step="0.0001" placeholder="-74.0060" required>
-        </div>
-        
+
         <div>
           <label for="issuePhoto">Photo (optional)</label>
-          <input type="file" id="issuePhoto" name="photo" accept="image/*">
+          <input type="file" id="issuePhoto" name="photo" accept="image/*" aria-label="Upload a photo">
         </div>
-        
+
         <div>
-          <button type="button" id="getLocationBtn" class="btn-secondary" style="margin-bottom: 1em;">
-            Use Current Location
-          </button>
+          <button type="button" id="getLocationBtn" class="btn-secondary" style="margin-bottom:1em;">Use Current Location</button>
         </div>
-        
+
         <button type="submit" class="submit-btn">Submit Issue</button>
+        <div id="issueFormStatus" role="status" aria-live="polite" style="margin-top:0.5em;"></div>
       </form>
     `;
 
-    // Setup form event listeners
     const form = document.getElementById('issueForm');
     const locationInput = document.getElementById('issueLocation');
-    const suggestionsList = document.getElementById('locationSuggestions');
-    const getLocationBtn = document.getElementById('getLocationBtn');
 
-    // Location autosuggest
     locationInput.addEventListener('input', handleLocationInput);
+    locationInput.addEventListener('keydown', handleLocationKeydown);
     locationInput.addEventListener('focus', handleLocationInput);
-
-    // Get current location
-    getLocationBtn.addEventListener('click', getCurrentLocation);
-
-    // Form submission
+    document.getElementById('getLocationBtn').addEventListener('click', getCurrentLocation);
     form.addEventListener('submit', handleIssueSubmission);
   }
 
-  // Handle location input for autosuggest
-  function handleLocationInput(e) {
-    const input = e.target;
-    const suggestionsList = document.getElementById('locationSuggestions');
-    const value = input.value.toLowerCase();
-
-    clearTimeout(autosuggestTimeout);
-    
-    if (!value.trim()) {
-      suggestionsList.style.display = 'none';
-      return;
-    }
-
-    autosuggestTimeout = setTimeout(() => {
-      const filtered = LOCATION_SUGGESTIONS.filter(loc => 
-        loc.toLowerCase().includes(value)
-      );
-
-      if (filtered.length === 0) {
-        suggestionsList.style.display = 'none';
-        return;
-      }
-
-      suggestionsList.innerHTML = filtered.map(loc => 
-        `<li data-location="${loc}">${loc}</li>`
-      ).join('');
-      suggestionsList.style.display = 'block';
-
-      // Add click listeners to suggestions
-      suggestionsList.querySelectorAll('li').forEach(li => {
-        li.addEventListener('click', () => {
-          input.value = li.getAttribute('data-location');
-          suggestionsList.style.display = 'none';
-        });
-      });
-    }, 300);
-  }
-
-  // Close autosuggest dropdown
-  function closeAutosuggest() {
-    const suggestionsList = document.getElementById('locationSuggestions');
-    if (suggestionsList) {
-      suggestionsList.style.display = 'none';
-    }
-  }
-
-  // Get current geolocation
-  function getCurrentLocation() {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-
-    const latInput = document.getElementById('issueLat');
-    const lngInput = document.getElementById('issueLng');
-    const locationInput = document.getElementById('issueLocation');
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        latInput.value = position.coords.latitude.toFixed(6);
-        lngInput.value = position.coords.longitude.toFixed(6);
-        locationInput.value = 'Current Location';
-      },
-      (error) => {
-        alert('Unable to retrieve your location: ' + error.message);
-      }
-    );
-  }
-
-  // Handle citizen issue submission
-  function handleIssueSubmission(e) {
-    e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-
-    const newIssue = {
-      id: generateId(),
-      type: formData.get('type'),
-      description: formData.get('description'),
-      location: formData.get('location'),
-      coordinates: {
-        lat: parseFloat(formData.get('lat')),
-        lng: parseFloat(formData.get('lng'))
-      },
-      photo: '', // Handle file upload would go here
-      votes: 0,
-      priority: 'low', // Default priority
-      status: 'recent',
-      department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
-      expense: Math.floor(Math.random() * 1000) + 100,
-      createdAt: Date.now(),
-      votedBy: []
-    };
-
-    // Add issue and save
-    issues.push(newIssue);
-    saveIssues();
-
-    // Reset form and update UI
-    form.reset();
-    alert('Issue submitted successfully!');
-    renderBoardColumns();
-    renderInsights();
-  }
-
-  // Render admin control panel
   function renderAdminPanel() {
     leftPanel.innerHTML = `
       <h2>Admin Controls</h2>
@@ -422,45 +317,36 @@ const DEMO_ISSUES = [
         <div style="margin-top: 1em; padding: 1em; background: #f8f9fa; border-radius: 4px;">
           <h3>Priority Guide</h3>
           <ul style="margin: 0; padding-left: 1.2em;">
-            <li><strong>Low</strong>: Gray border - Routine issues</li>
-            <li><strong>Medium</strong>: Yellow border - Moderate urgency</li>
-            <li><strong>Immediate</strong>: Orange border - High priority</li>
-            <li><strong>Urgent</strong>: Red border - Critical issues</li>
+            <li><strong>Low</strong>: Gray - Routine issues</li>
+            <li><strong>Medium</strong>: Yellow - Moderate urgency</li>
+            <li><strong>Immediate</strong>: Orange - High priority</li>
+            <li><strong>Urgent</strong>: Red - Critical issues</li>
           </ul>
         </div>
       </div>
     `;
   }
 
-  // Render all board columns with issues
   function renderBoardColumns() {
     if (!recentColumn) return;
-
-    // Clear all columns
+    // Clear columns
     recentColumn.innerHTML = '';
     queueColumn.innerHTML = '';
     inprogressColumn.innerHTML = '';
     completedColumn.innerHTML = '';
 
-    // Sort issues by votes (descending) for recent column, then by creation date
-    const sortedIssues = [...issues].sort((a, b) => {
-      if (a.status === 'recent' && b.status === 'recent') {
-        return b.votes - a.votes || b.createdAt - a.createdAt;
-      }
-      return b.createdAt - a.createdAt;
-    });
+    // Render each column with sorted results
+    const recentList = sortIssuesForColumn(issues, 'recent');
+    const queueList = sortIssuesForColumn(issues, 'queue');
+    const inprogressList = sortIssuesForColumn(issues, 'inprogress');
+    const completedList = sortIssuesForColumn(issues, 'completed');
 
-    // Render issues in their respective columns
-    sortedIssues.forEach(issue => {
-      const card = createIssueCard(issue);
-      const column = getColumnByStatus(issue.status);
-      if (column) {
-        column.appendChild(card);
-      }
-    });
+    recentList.forEach(i => recentColumn.appendChild(createIssueCard(i)));
+    queueList.forEach(i => queueColumn.appendChild(createIssueCard(i)));
+    inprogressList.forEach(i => inprogressColumn.appendChild(createIssueCard(i)));
+    completedList.forEach(i => completedColumn.appendChild(createIssueCard(i)));
   }
 
-  // Get DOM column by status
   function getColumnByStatus(status) {
     switch (status) {
       case 'recent': return recentColumn;
@@ -471,184 +357,370 @@ const DEMO_ISSUES = [
     }
   }
 
-  // Create an issue card element
   function createIssueCard(issue) {
     const card = document.createElement('div');
     card.className = `issue-card ${priorityClass(issue.priority)}`;
     card.dataset.id = issue.id;
+    card.setAttribute('role', 'article');
+    card.style.border = '1px solid #e6e6e6';
+    card.style.padding = '0.8rem';
+    card.style.marginBottom = '0.8rem';
+    card.style.borderRadius = '6px';
+    card.style.background = '#fff';
 
     const hasVoted = issue.votedBy && issue.votedBy.includes(username);
     const canVote = role === 'citizen' && issue.status === 'recent' && !hasVoted;
 
+    // Build inner HTML
     card.innerHTML = `
-      <div class="type">${capitalize(issue.type)}</div>
-      <div class="description">${issue.description}</div>
-      <div class="location">📍 ${issue.location}</div>
-      <div class="coordinates">${formatCoords(issue.coordinates)}</div>
-      <div class="votes">👍 ${issue.votes} votes</div>
-      <div class="priority">Priority: ${PRIORITY_DISPLAY[issue.priority]}</div>
-      <div class="department">Department: ${issue.department}</div>
-      <div class="expense">Est. Cost: ${formatCurrency(issue.expense)}</div>
-      ${issue.photo ? `<img src="${issue.photo}" alt="Photo of ${issue.type} issue at ${issue.location}" class="photo">` : ''}
-      
-      ${role === 'citizen' && issue.status === 'recent' ? `
-        <button class="btn-upvote" ${hasVoted ? 'disabled' : ''}>
-          ${hasVoted ? 'Voted ✓' : 'Upvote'}
-        </button>
-      ` : ''}
-      
-      ${role === 'admin' ? `
-        <div class="admin-controls">
-          <select class="priority-select" data-issue-id="${issue.id}">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:600;">${capitalize(issue.type)}</div>
+        <div style="font-size:0.9em; color:#666;">${new Date(issue.createdAt).toLocaleString()}</div>
+      </div>
+      <div class="description" style="margin-top:0.4rem;">${escapeHtml(issue.description)}</div>
+      <div class="location" style="margin-top:0.4rem;">📍 ${escapeHtml(issue.location)}</div>
+      <div class="coordinates" style="font-size:0.85em; color:#555;">${formatCoords(issue.coordinates)}</div>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:0.6rem;">
+        <div class="votes">👍 <span class="vote-count">${issue.votes || 0}</span> votes</div>
+        <div class="priority" style="margin-left:auto;">Priority: ${PRIORITY_DISPLAY[issue.priority] || capitalize(issue.priority)}</div>
+      </div>
+      <div style="font-size:0.85em; color:#444; margin-top:0.4rem;">Department: ${escapeHtml(issue.department)} • Est. Cost: ${formatCurrency(issue.expense)}</div>
+      ${issue.photo ? `<img src="${issue.photo}" alt="Photo of ${escapeHtml(issue.type)} at ${escapeHtml(issue.location)}" style="max-width:100%; margin-top:0.5rem; border-radius:4px;">` : ''}
+      <div class="card-controls" style="margin-top:0.6rem; display:flex; gap:8px; align-items:center;">
+        ${role === 'citizen' && issue.status === 'recent' ? `<button class="btn-upvote" data-id="${issue.id}" ${hasVoted ? 'disabled' : ''} aria-pressed="${hasVoted ? 'true' : 'false'}">${hasVoted ? 'Voted ✓' : 'Upvote'}</button>` : ''}
+        ${role === 'admin' ? `
+          <select class="priority-select" data-issue-id="${issue.id}" aria-label="Change priority">
             <option value="low" ${issue.priority === 'low' ? 'selected' : ''}>Low</option>
             <option value="medium" ${issue.priority === 'medium' ? 'selected' : ''}>Medium</option>
             <option value="immediate" ${issue.priority === 'immediate' ? 'selected' : ''}>Immediate</option>
             <option value="urgent" ${issue.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
           </select>
-          <button class="advance-status" data-issue-id="${issue.id}" 
-                  ${issue.status === 'completed' ? 'disabled' : ''}>
-            ${issue.status === 'completed' ? 'Completed' : 'Advance Status'}
-          </button>
-        </div>
-      ` : ''}
+          <button class="advance-status" data-issue-id="${issue.id}" ${issue.status === 'completed' ? 'disabled' : ''}>${issue.status === 'completed' ? 'Completed' : 'Advance Status'}</button>
+        ` : ''}
+      </div>
     `;
 
-    // Add event listeners
-    if (role === 'citizen' && canVote) {
-      const upvoteBtn = card.querySelector('.btn-upvote');
-      upvoteBtn.addEventListener('click', () => handleUpvote(issue.id));
-    }
-
-    if (role === 'admin') {
-      const prioritySelect = card.querySelector('.priority-select');
-      const advanceBtn = card.querySelector('.advance-status');
-
-      prioritySelect.addEventListener('change', (e) => 
-        handlePriorityChange(issue.id, e.target.value)
-      );
-
-      if (issue.status !== 'completed') {
-        advanceBtn.addEventListener('click', () => 
-          handleStatusAdvance(issue.id)
-        );
-      }
-    }
-
+    // Use event delegation at container level (set up elsewhere)
     return card;
   }
 
-  // Handle citizen upvote
-  function handleUpvote(issueId) {
-    const issue = issues.find(i => i.id === issueId);
-    if (issue && issue.status === 'recent') {
-      if (!issue.votedBy) issue.votedBy = [];
-      if (!issue.votedBy.includes(username)) {
-        issue.votes++;
-        issue.votedBy.push(username);
-        saveIssues();
-        renderBoardColumns();
-        renderInsights();
-      }
-    }
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]);
   }
 
-  // Handle admin priority change
-  function handlePriorityChange(issueId, newPriority) {
-    const issue = issues.find(i => i.id === issueId);
-    if (issue && issue.priority !== newPriority) {
-      issue.priority = newPriority;
-      saveIssues();
-      
-      // Update the card's priority class
-      const card = document.querySelector(`.issue-card[data-id="${issueId}"]`);
-      if (card) {
-        card.className = `issue-card ${priorityClass(newPriority)}`;
-      }
-    }
-  }
-
-  // Handle admin status advancement
-  function handleStatusAdvance(issueId) {
-    const issue = issues.find(i => i.id === issueId);
-    if (issue && issue.status !== 'completed') {
-      const currentIndex = STATUS_ORDER.indexOf(issue.status);
-      if (currentIndex < STATUS_ORDER.length - 1) {
-        issue.status = STATUS_ORDER[currentIndex + 1];
-        saveIssues();
-        renderBoardColumns();
-        renderInsights();
-      }
-    }
-  }
-
-  function formatINR(amount) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR'
-  }).format(amount);
-}
-
-// Example usage:
-console.log(formatINR(500)); // ₹500.00
-
-
-  // Render insights for citizens
   function renderInsights() {
     if (role !== 'citizen') return;
-
     const completedCount = issues.filter(i => i.status === 'completed').length;
-    const totalSpending = issues
-      .filter(i => i.status === 'completed')
-      .reduce((sum, issue) => sum + issue.expense, 0);
-
-    // Find top department (most issues completed)
+    const totalSpending = issues.filter(i => i.status === 'completed').reduce((s, it) => s + (it.expense || 0), 0);
     const deptCounts = {};
-    issues
-      .filter(i => i.status === 'completed')
-      .forEach(issue => {
-        deptCounts[issue.department] = (deptCounts[issue.department] || 0) + 1;
-      });
-
-    const topDept = Object.keys(deptCounts).length > 0 
-      ? Object.entries(deptCounts).sort((a, b) => b[1] - a[1])[0][0]
-      : 'None';
+    issues.filter(i => i.status === 'completed').forEach(issue => {
+      deptCounts[issue.department] = (deptCounts[issue.department] || 0) + 1;
+    });
+    const topDept = Object.keys(deptCounts).length > 0 ? Object.entries(deptCounts).sort((a,b)=>b[1]-a[1])[0][0] : 'None';
 
     insightsSection.innerHTML = `
       <h3>Community Insights</h3>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1em; margin-top: 0.5em;">
-        <div style="background: #e8f5e8; padding: 1em; border-radius: 6px;">
-          <strong>Total Completed Works</strong><br>
-          <span style="font-size: 1.5em; font-weight: bold;">${completedCount}</span>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1em; margin-top:0.5em;">
+        <div style="background:#e8f5e8; padding:1em; border-radius:6px;">
+          <strong>Total Completed Works</strong><br><span style="font-size:1.5em; font-weight:bold;">${completedCount}</span>
         </div>
-        <div style="background: #e3f2fd; padding: 1em; border-radius: 6px;">
-          <strong>Top Department</strong><br>
-          <span style="font-size: 1.2em; font-weight: bold;">${topDept}</span>
+        <div style="background:#e3f2fd; padding:1em; border-radius:6px;">
+          <strong>Top Department</strong><br><span style="font-size:1.2em; font-weight:bold;">${escapeHtml(topDept)}</span>
         </div>
-        <div style="background: #fff3e0; padding: 1em; border-radius: 6px;">
-          <strong>Total Spending</strong><br>
-          <span style="font-size: 1.2em; font-weight: bold;">${formatCurrency(totalSpending)}</span>
+        <div style="background:#fff3e0; padding:1em; border-radius:6px;">
+          <strong>Total Spending</strong><br><span style="font-size:1.2em; font-weight:bold;">${formatCurrency(totalSpending)}</span>
         </div>
       </div>
     `;
   }
 
-  // Start polling for live updates
-  function startPolling() {
-    pollTimer = setInterval(() => {
-      const oldIssues = JSON.stringify(issues);
-      loadIssues();
-      const newIssues = JSON.stringify(issues);
+  /* ===========================
+     Event Handlers & Actions
+     =========================== */
 
-      if (oldIssues !== newIssues) {
-        renderBoardColumns();
-        if (role === 'citizen') {
-          renderInsights();
+  // --- Autosuggest (debounced + keyboard)
+  function handleLocationInput(e) {
+    const input = e.target;
+    const value = input.value.trim().toLowerCase();
+    const listEl = document.getElementById('locationSuggestions');
+    input.setAttribute('aria-expanded', 'true');
+
+    clearTimeout(autosuggestTimer);
+    if (!value) {
+      listEl.style.display = 'none';
+      input.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    autosuggestTimer = setTimeout(() => {
+      const filtered = LOCATION_SUGGESTIONS.filter(loc => loc.toLowerCase().includes(value));
+      if (!filtered.length) {
+        listEl.style.display = 'none';
+        input.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      listEl.innerHTML = filtered.map((loc, idx) => `<li role="option" data-index="${idx}" data-location="${escapeHtml(loc)}" style="padding:6px; cursor:pointer;">${escapeHtml(loc)}</li>`).join('');
+      listEl.style.display = 'block';
+      // click listeners (delegated)
+      listEl.querySelectorAll('li').forEach(li => {
+        li.addEventListener('click', () => {
+          input.value = li.getAttribute('data-location');
+          listEl.style.display = 'none';
+          input.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }, AUTOSUGGEST_DEBOUNCE_MS);
+  }
+
+  function handleLocationKeydown(e) {
+    const listEl = document.getElementById('locationSuggestions');
+    if (!listEl) return;
+    const visible = listEl.style.display !== 'none';
+    if (!visible) return;
+
+    const items = Array.from(listEl.querySelectorAll('li'));
+    if (!items.length) return;
+
+    const active = listEl.querySelector('.active');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!active) {
+        items[0].classList.add('active');
+        items[0].style.background = '#eef';
+      } else {
+        const idx = items.indexOf(active);
+        active.classList.remove('active');
+        active.style.background = '';
+        const next = items[Math.min(items.length - 1, idx + 1)];
+        next.classList.add('active');
+        next.style.background = '#eef';
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!active) {
+        items[items.length - 1].classList.add('active');
+        items[items.length - 1].style.background = '#eef';
+      } else {
+        const idx = items.indexOf(active);
+        active.classList.remove('active');
+        active.style.background = '';
+        const prev = items[Math.max(0, idx - 1)];
+        prev.classList.add('active');
+        prev.style.background = '#eef';
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const chosen = listEl.querySelector('.active') || items[0];
+      if (chosen) {
+        document.getElementById('issueLocation').value = chosen.getAttribute('data-location');
+        listEl.style.display = 'none';
+        e.target.setAttribute('aria-expanded', 'false');
+      }
+    } else if (e.key === 'Escape') {
+      listEl.style.display = 'none';
+      e.target.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function closeAutosuggest() {
+    const listEl = document.getElementById('locationSuggestions');
+    if (listEl) {
+      listEl.style.display = 'none';
+      const input = document.getElementById('issueLocation');
+      if (input) input.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  async function reverseGeocode(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    try {
+      const response = await fetch(url, {
+        headers: { 'User -Agent': 'CivicIssuesApp/1.0' }
+      });
+      if (!response.ok) throw new Error('Failed to reverse geocode');
+      const data = await response.json();
+      return data.display_name || '';
+    } catch (e) {
+      console.warn('Reverse geocode error:', e);
+      return '';
+    }
+  }
+
+  // Geolocation
+  async function getCurrentLocation() {
+  const latInput = document.getElementById('issueLat');
+  const lngInput = document.getElementById('issueLng');
+  const locationInput = document.getElementById('issueLocation');
+  const getLocationBtn = document.getElementById('getLocationBtn');
+
+  if (!navigator.geolocation) {
+    notify('Geolocation is not supported by your browser');
+    return;
+  }
+
+  getLocationBtn.disabled = true;
+  getLocationBtn.textContent = 'Fetching location...';
+
+  navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        latInput.value = latitude.toFixed(3);
+        lngInput.value = longitude.toFixed(3);
+
+        // Try reverse geocoding to get a human-readable location name
+        const locationName = await reverseGeocode(latitude, longitude);
+        locationInput.value = locationName || 'Current Location';
+
+        getLocationBtn.disabled = false;
+        getLocationBtn.textContent = 'Use Current Location';
+      },
+      (error) => {
+        notify('Unable to retrieve your location: ' + error.message);
+        getLocationBtn.disabled = false;
+        getLocationBtn.textContent = 'Use Current Location';
+      },
+      { timeout: 10000 }
+    );
+  }
+
+  // File -> base64 utility returning Promise
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) return resolve('');
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Submission
+  async function handleIssueSubmission(e) {
+    e.preventDefault();
+    const form = e.target;
+    const fd = new FormData(form);
+    const type = fd.get('type');
+    const description = fd.get('description') || '';
+    const location = fd.get('location') || '';
+    const lat = parseFloat(fd.get('lat'));
+    const lng = parseFloat(fd.get('lng'));
+    const photoFile = fd.get('photo');
+
+    const statusEl = document.getElementById('issueFormStatus');
+    if (!type || !description || !location || !isFinite(lat) || !isFinite(lng)) {
+      statusEl.textContent = 'Please fill all required fields with valid data.';
+      return;
+    }
+
+    const coords = { lat, lng };
+
+    // Duplicate check
+    if (isDuplicateNearby(type, coords)) {
+      // Instead of forcing duplicate, offer to upvote nearest; here we block and notify
+      notify('A similar issue (same type, nearby) already exists. Consider upvoting the existing report.');
+      return;
+    }
+
+    // Read file (async)
+    let photo = '';
+    try {
+      if (photoFile && photoFile.size && photoFile.type.startsWith('image/')) {
+        photo = await fileToBase64(photoFile);
+      }
+    } catch (err) {
+      console.warn('Image read failed:', err);
+      notify('Failed to process image — continuing without photo.');
+    }
+
+    const newIssue = {
+      id: generateId(),
+      type,
+      description,
+      location,
+      coordinates: coords,
+      photo,
+      votes: 0,
+      priority: 'low',
+      status: 'recent',
+      department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
+      expense: Math.floor(Math.random() * 1000) + 100,
+      createdAt: now(),
+      votedBy: []
+    };
+
+    issues.push(newIssue);
+    saveIssues();
+    form.reset();
+    closeAutosuggest();
+    renderBoardColumns();
+    renderInsights();
+    statusEl.textContent = '';
+    notify('Issue submitted successfully!');
+  }
+
+  // Upvote (citizen)
+  function handleUpvote(issueId) {
+    const issue = findIssueById(issueId);
+    if (!issue) return;
+    if (issue.status !== 'recent') return;
+    if (!issue.votedBy) issue.votedBy = [];
+    if (issue.votedBy.includes(username)) return;
+    issue.votes = (issue.votes || 0) + 1;
+    issue.votedBy.push(username);
+    saveIssues();
+    renderBoardColumns();
+    renderInsights();
+  }
+
+  // Admin: priority change
+  function handlePriorityChange(issueId, newPriority) {
+    const issue = findIssueById(issueId);
+    if (!issue) return;
+    if (issue.priority === newPriority) return;
+    issue.priority = newPriority;
+    saveIssues();
+    // update DOM in place if present
+    const card = document.querySelector(`.issue-card[data-id="${issueId}"]`);
+    if (card) card.className = `issue-card ${priorityClass(newPriority)}`;
+  }
+
+  // Admin: advance status
+  function handleStatusAdvance(issueId) {
+    const issue = findIssueById(issueId);
+    if (!issue) return;
+    const idx = STATUS_ORDER.indexOf(issue.status);
+    if (idx < 0 || idx >= STATUS_ORDER.length - 1) return;
+    issue.status = STATUS_ORDER[idx + 1];
+    saveIssues();
+    renderBoardColumns();
+    renderInsights();
+  }
+
+  /* ===========================
+     Polling & Sync
+     =========================== */
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(() => {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        const remoteUpdated = parsed.lastUpdated || 0;
+        // If remote has newer updates, adopt it
+        if (remoteUpdated > lastSavedAt) {
+          issues = Array.isArray(parsed.issues) ? parsed.issues : [];
+          lastSavedAt = remoteUpdated;
+          renderBoardColumns();
+          if (role === 'citizen') renderInsights();
         }
+      } catch (e) {
+        console.warn('Polling parse error', e);
       }
     }, POLL_INTERVAL_MS);
   }
 
-  // Stop polling (cleanup)
   function stopPolling() {
     if (pollTimer) {
       clearInterval(pollTimer);
@@ -656,14 +728,106 @@ console.log(formatINR(500)); // ₹500.00
     }
   }
 
-  // Initialize the app when DOM is loaded
+  /* ===========================
+     Global Event Delegation
+     =========================== */
+  function setupGlobalDelegation() {
+    // Upvote buttons, admin controls inside board container
+    const board = document.getElementById('board'); // assuming a #board wrapper exists
+    if (!board) {
+      // fallback: attach to document
+      document.addEventListener('click', globalClickHandler);
+      document.addEventListener('change', globalChangeHandler);
+      return;
+    }
+    board.addEventListener('click', globalClickHandler);
+    board.addEventListener('change', globalChangeHandler);
+  }
+
+  function globalClickHandler(e) {
+    const up = e.target.closest('.btn-upvote');
+    if (up) {
+      const id = up.getAttribute('data-id');
+      handleUpvote(id);
+      return;
+    }
+    const adv = e.target.closest('.advance-status');
+    if (adv) {
+      const id = adv.getAttribute('data-issue-id');
+      handleStatusAdvance(id);
+      return;
+    }
+  }
+
+  function globalChangeHandler(e) {
+    const sel = e.target.closest('.priority-select');
+    if (sel) {
+      const id = sel.getAttribute('data-issue-id');
+      handlePriorityChange(id, sel.value);
+    }
+  }
+
+  /* ===========================
+     Initialization & Cleanup
+     =========================== */
+  function init() {
+    username = sessionStorage.getItem('username');
+    role = sessionStorage.getItem('role');
+
+    if (!username || !role) {
+      // not logged in
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // DOM refs
+    userGreetingEl = document.getElementById('userGreeting');
+    logoutBtn = document.getElementById('logoutBtn');
+    leftPanel = document.getElementById('leftPanel');
+    recentColumn = document.getElementById('recentColumn');
+    queueColumn = document.getElementById('queueColumn');
+    inprogressColumn = document.getElementById('inprogressColumn');
+    completedColumn = document.getElementById('completedColumn');
+    insightsSection = document.getElementById('insightsSection');
+
+    // Basic checks
+    if (!userGreetingEl || !leftPanel) {
+      console.error('UI root elements missing (userGreeting or leftPanel).');
+    }
+
+    // logout
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+      });
+    }
+
+    // close autosuggest on outside click
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('.autosuggest-list')) {
+        closeAutosuggest();
+      }
+    });
+
+    // load and render
+    loadIssues(false);
+    renderUI();
+    setupGlobalDelegation();
+    startPolling();
+  }
+
+  // Clean up
+  window.addEventListener('beforeunload', stopPolling);
+
+  // Boot
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', stopPolling);
-
+  /* ===========================
+     End of file
+     =========================== */
 })();
