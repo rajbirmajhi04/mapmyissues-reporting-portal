@@ -6,66 +6,78 @@
   // Constants
   const STORAGE_KEY = 'civic_issues_data';
   const POLL_INTERVAL_MS = 1500;
-  const DEMO_ISSUES = [
-    {
-      id: 'demo1',
-      type: 'pothole',
-      description: 'Large pothole near Main St.',
-      location: 'Main Street',
-      coordinates: { lat: 40.7128, lng: -74.006 },
-      photo: '',
-      votes: 3,
-      priority: 'medium',
-      status: 'recent',
-      department: 'Road Maintenance',
-      expense: 500,
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2 days ago
-      votedBy: ['citizen1']
-    },
-    {
-      id: 'demo2',
-      type: 'streetlight',
-      description: 'Streetlight flickering on 5th Ave.',
-      location: '5th Avenue',
-      coordinates: { lat: 40.7138, lng: -74.001 },
-      photo: '',
-      votes: 5,
-      priority: 'immediate',
-      status: 'queue',
-      department: 'Electrical',
-      expense: 200,
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1, // 1 day ago
-      votedBy: ['citizen1', 'user2', 'user3', 'user4', 'user5']
-    },
-    {
-      id: 'demo3',
-      type: 'garbage',
-      description: 'Overflowing garbage bin near park.',
-      location: 'Central Park',
-      coordinates: { lat: 40.7851, lng: -73.9683 },
-      photo: '',
-      votes: 1,
-      priority: 'low',
-      status: 'inprogress',
-      department: 'Sanitation',
-      expense: 0,
-      createdAt: Date.now() - 1000 * 60 * 60 * 12, // 12 hours ago
-      votedBy: ['user6']
-    },
-  ];
+const DEMO_ISSUES = [
+  {
+    id: 'demo1',
+    type: 'pothole',
+    description: 'Big pothole near Master Canteen square, causing traffic jams.',
+    location: 'Master Canteen Square, Bhubaneswar',
+    coordinates: { lat: 20.2686, lng: 85.8430 },
+    photo: '',
+    votes: 3,
+    priority: 'medium',
+    status: 'recent',
+    department: 'Road Maintenance',
+    expense: 15000, // 
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2 days ago
+    votedBy: ['citizen1']
+  },
+  {
+    id: 'demo2',
+    type: 'streetlight',
+    description: 'Streetlight not working near KIIT Square.',
+    location: 'KIIT Square, Bhubaneswar',
+    coordinates: { lat: 20.3551, lng: 85.8192 },
+    photo: '',
+    votes: 5,
+    priority: 'immediate',
+    status: 'queue',
+    department: 'Electrical',
+    expense: 2500, 
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1, // 1 day ago
+    votedBy: ['citizen1', 'user2', 'user3', 'user4', 'user5']
+  },
+  {
+    id: 'demo3',
+    type: 'garbage',
+    description: 'Garbage pile-up near Rupali Square bus stop.',
+    location: 'Rupali Square, Bhubaneswar',
+    coordinates: { lat: 20.2940, lng: 85.8253 },
+    photo: '',
+    votes: 1,
+    priority: 'low',
+    status: 'inprogress',
+    department: 'Sanitation',
+    expense: 800, 
+    createdAt: Date.now() - 1000 * 60 * 60 * 12, // 12 hours ago
+    votedBy: ['user6']
+  }
+];
 
   // Location suggestions for autosuggest
   const LOCATION_SUGGESTIONS = [
-    'Main Street',
-    '5th Avenue',
-    'Central Park',
-    'Broadway',
-    'Elm Street',
-    'Maple Avenue',
-    'Oak Street',
-    'Pine Street',
-    'Cedar Road',
-    'Washington Blvd',
+
+  'Janpath Road',
+  'Sahid Nagar',
+  'Nayapalli',
+  'Jaydev Vihar',
+  'Chandrasekharpur',
+  'Khandagiri',
+  'Patia',
+  'Bapuji Nagar',
+  'Bomikhal',
+  'CRP Square',
+  'KIIT Road',
+  'Baramunda',
+  'Unit-1 Market',
+  'Vani Vihar',
+  'Rasulgarh',
+  'Laxmi Sagar',
+  'Acharya Vihar',
+  'Jagamara',
+  'Palasuni',
+  'Mancheswar',
+
   ];
 
   // Issue types for dropdown
@@ -98,7 +110,7 @@
 
   // Global state
   let issues = [];
-  let username = null;
+  let username = null;  
   let role = null;
   let pollTimer = null;
   let autosuggestTimeout = null;
@@ -187,7 +199,7 @@
 
   // Utility: Format currency
   function formatCurrency(num) {
-    return `$${num.toLocaleString()}`;
+    return `₹${num.toLocaleString()}`;
   }
 
   // Utility: Capitalize first letter
@@ -568,6 +580,17 @@
       }
     }
   }
+
+  function formatINR(amount) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(amount);
+}
+
+// Example usage:
+console.log(formatINR(500)); // ₹500.00
+
 
   // Render insights for citizens
   function renderInsights() {
