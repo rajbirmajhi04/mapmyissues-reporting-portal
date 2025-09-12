@@ -23,25 +23,6 @@
     <p class="demo-note">Use username <code>citizen1</code> or <code>admin1</code> with matching role.</p>
   </main>
 
-  <script>
-    // Simple login handler
-    document.getElementById('loginForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const username = e.target.username.value.trim();
-      const role = e.target.role.value;
-
-      // Demo validation: username must be citizen1 or admin1 matching role
-      if (
-        (role === 'citizen' && username.toLowerCase() === 'citizen1') ||
-        (role === 'admin' && username.toLowerCase() === 'admin1')
-      ) {
-        sessionStorage.setItem('username', username);
-        sessionStorage.setItem('role', role);
-        window.location.href = 'dashboard.html';
-      } else {
-        alert('Invalid username or role combination. Use citizen1 or admin1 with correct role.');
-      }
-    });
-  </script>
+  <script src="js/login.js"></script>
 </body>
 </html>

@@ -93,6 +93,7 @@
   let pollTimer = null;
   let autosuggestTimer = null;
   let lastSavedAt = 0;
+  let unsubscribeRealtime = null;
 
   // DOM refs set in init
   let userGreetingEl, logoutBtn, leftPanel, recentColumn, queueColumn, inprogressColumn, completedColumn, insightsSection;
@@ -111,30 +112,15 @@
     return Date.now();
   }
 
-  function saveIssues() {
-    const payload = {
-      issues,
-      lastUpdated: now()
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    lastSavedAt = payload.lastUpdated;
-  }
-
-  function loadIssues(forceInitDemo = false) {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw || forceInitDemo) {
-      issues = DEMO_ISSUES.map(i => ({ ...i }));
-      saveIssues();
-      return;
-    }
+  async function refreshIssuesFromServer() {
     try {
-      const parsed = JSON.parse(raw);
-      issues = Array.isArray(parsed.issues) ? parsed.issues : [];
-      lastSavedAt = parsed.lastUpdated || 0;
+      const list = await window.dataService.fetchAllIssuesWithVotes();
+      issues = list;
+      renderBoardColumns();
+      if (role === 'citizen') renderInsights();
     } catch (e) {
-      console.error('Failed to parse stored issues:', e);
-      issues = DEMO_ISSUES.map(i => ({ ...i }));
-      saveIssues();
+      console.error('Failed to load issues', e);
+      notify('Unable to load issues from server');
     }
   }
 
@@ -536,7 +522,7 @@
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
     try {
       const response = await fetch(url, {
-        headers: { 'User -Agent': 'CivicIssuesApp/1.0' }
+        headers: { 'User-Agent': 'CivicIssuesApp/1.0' }
       });
       if (!response.ok) throw new Error('Failed to reverse geocode');
       const data = await response.json();
@@ -615,116 +601,108 @@
 
     const coords = { lat, lng };
 
-    // Duplicate check
+    // Duplicate check (client-side heuristic only)
     if (isDuplicateNearby(type, coords)) {
-      // Instead of forcing duplicate, offer to upvote nearest; here we block and notify
-      notify('A similar issue (same type, nearby) already exists. Consider upvoting the existing report.');
-      return;
+      notify('A similar issue (same type, nearby) may exist. Consider upvoting the existing report.');
     }
 
-    // Read file (async)
-    let photo = '';
+    // Upload photo (to storage) and create record
+    let photo_url = '';
     try {
       if (photoFile && photoFile.size && photoFile.type.startsWith('image/')) {
-        photo = await fileToBase64(photoFile);
+        photo_url = await window.dataService.uploadPhotoIfNeeded(photoFile);
       }
     } catch (err) {
-      console.warn('Image read failed:', err);
-      notify('Failed to process image — continuing without photo.');
+      console.warn('Photo upload failed:', err);
+      notify('Failed to upload image — continuing without photo.');
     }
 
-    const newIssue = {
-      id: generateId(),
-      type,
-      description,
-      location,
-      coordinates: coords,
-      photo,
-      votes: 0,
-      priority: 'low',
-      status: 'recent',
-      department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
-      expense: Math.floor(Math.random() * 1000) + 100,
-      createdAt: now(),
-      votedBy: []
-    };
-
-    issues.push(newIssue);
-    saveIssues();
-    form.reset();
-    closeAutosuggest();
-    renderBoardColumns();
-    renderInsights();
-    statusEl.textContent = '';
-    notify('Issue submitted successfully!');
+    try {
+      const payload = {
+        type,
+        description,
+        location,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        photo_url,
+        priority: 'low',
+        status: 'recent',
+        department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
+        expense: Math.floor(Math.random() * 1000) + 100
+      };
+      await window.dataService.createIssue(payload);
+      form.reset();
+      closeAutosuggest();
+      statusEl.textContent = '';
+      notify('Issue submitted successfully!');
+      // Re-fetch to ensure consistency
+      await refreshIssuesFromServer();
+    } catch (e2) {
+      console.error('Create issue failed', e2);
+      notify('Failed to submit issue');
+    }
   }
 
   // Upvote (citizen)
-  function handleUpvote(issueId) {
+  async function handleUpvote(issueId) {
     const issue = findIssueById(issueId);
     if (!issue) return;
     if (issue.status !== 'recent') return;
-    if (!issue.votedBy) issue.votedBy = [];
-    if (issue.votedBy.includes(username)) return;
-    issue.votes = (issue.votes || 0) + 1;
-    issue.votedBy.push(username);
-    saveIssues();
-    renderBoardColumns();
-    renderInsights();
+    if (issue.votedBy && issue.votedBy.includes(username)) return;
+    try {
+      await window.dataService.addVote(issueId, username);
+      await refreshIssuesFromServer();
+    } catch (e) {
+      console.error('Upvote failed', e);
+      notify('Failed to upvote');
+    }
   }
 
   // Admin: priority change
-  function handlePriorityChange(issueId, newPriority) {
+  async function handlePriorityChange(issueId, newPriority) {
     const issue = findIssueById(issueId);
     if (!issue) return;
     if (issue.priority === newPriority) return;
-    issue.priority = newPriority;
-    saveIssues();
-    // update DOM in place if present
-    const card = document.querySelector(`.issue-card[data-id="${issueId}"]`);
-    if (card) card.className = `issue-card ${priorityClass(newPriority)}`;
+    try {
+      await window.dataService.updateIssue(issueId, { priority: newPriority });
+      // Optimistic class update
+      const card = document.querySelector(`.issue-card[data-id="${issueId}"]`);
+      if (card) card.className = `issue-card ${priorityClass(newPriority)}`;
+    } catch (e) {
+      console.error('Priority update failed', e);
+      notify('Failed to update priority');
+    }
   }
 
   // Admin: advance status
-  function handleStatusAdvance(issueId) {
+  async function handleStatusAdvance(issueId) {
     const issue = findIssueById(issueId);
     if (!issue) return;
     const idx = STATUS_ORDER.indexOf(issue.status);
     if (idx < 0 || idx >= STATUS_ORDER.length - 1) return;
-    issue.status = STATUS_ORDER[idx + 1];
-    saveIssues();
-    renderBoardColumns();
-    renderInsights();
+    const next = STATUS_ORDER[idx + 1];
+    try {
+      await window.dataService.updateIssue(issueId, { status: next });
+    } catch (e) {
+      console.error('Status advance failed', e);
+      notify('Failed to advance status');
+    }
   }
 
   /* ===========================
      Polling & Sync
      =========================== */
-  function startPolling() {
-    if (pollTimer) return;
-    pollTimer = setInterval(() => {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      try {
-        const parsed = JSON.parse(raw);
-        const remoteUpdated = parsed.lastUpdated || 0;
-        // If remote has newer updates, adopt it
-        if (remoteUpdated > lastSavedAt) {
-          issues = Array.isArray(parsed.issues) ? parsed.issues : [];
-          lastSavedAt = remoteUpdated;
-          renderBoardColumns();
-          if (role === 'citizen') renderInsights();
-        }
-      } catch (e) {
-        console.warn('Polling parse error', e);
-      }
-    }, POLL_INTERVAL_MS);
+  function startRealtime() {
+    if (unsubscribeRealtime) return;
+    unsubscribeRealtime = window.dataService.subscribeRealtime(async () => {
+      await refreshIssuesFromServer();
+    });
   }
 
-  function stopPolling() {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
+  function stopRealtime() {
+    if (unsubscribeRealtime) {
+      unsubscribeRealtime();
+      unsubscribeRealtime = null;
     }
   }
 
@@ -810,15 +788,15 @@
       }
     });
 
-    // load and render
-    loadIssues(false);
+    // load and render from Supabase
+    refreshIssuesFromServer();
     renderUI();
     setupGlobalDelegation();
-    startPolling();
+    startRealtime();
   }
 
   // Clean up
-  window.addEventListener('beforeunload', stopPolling);
+  window.addEventListener('beforeunload', stopRealtime);
 
   // Boot
   if (document.readyState === 'loading') {
