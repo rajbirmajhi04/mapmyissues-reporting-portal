@@ -82,6 +82,12 @@ async function deleteIssue(issueId) {
   if (error) throw error;
 }
 
+async function logLogin(username, role) {
+  const sb = getSupabase();
+  const { error } = await sb.from('login_logs').insert([{ username, role }]);
+  if (error) throw error;
+}
+
 function subscribeRealtime(onChange) {
   const sb = getSupabase();
   const channel = sb.channel('issues-and-votes');
@@ -98,6 +104,7 @@ window.dataService = {
   addVote,
   updateIssue,
   deleteIssue,
+  logLogin,
   subscribeRealtime
 };
 
