@@ -370,18 +370,24 @@
         <div class="votes">👍 <span class="vote-count">${issue.votes || 0}</span> votes</div>
         <div class="priority" style="margin-left:auto;">Priority: ${PRIORITY_DISPLAY[issue.priority] || capitalize(issue.priority)}</div>
       </div>
-      <div style="font-size:0.85em; color:#444; margin-top:0.4rem;">Department: ${escapeHtml(issue.department)} • Est. Cost: ${formatCurrency(issue.expense)}</div>
+      ${role === 'citizen' ? `<div style="font-size:0.85em; color:#444; margin-top:0.4rem;">Department: ${escapeHtml(issue.department)} • Est. Cost: ${formatCurrency(issue.expense)}</div>` : ''}
       ${issue.photo ? `<img src="${issue.photo}" alt="Photo of ${escapeHtml(issue.type)} at ${escapeHtml(issue.location)}" style="max-width:100%; margin-top:0.5rem; border-radius:4px;">` : ''}
-      <div class="card-controls" style="margin-top:0.6rem; display:flex; gap:8px; align-items:center;">
+      <div class="card-controls" style="margin-top:0.6rem; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         ${role === 'citizen' && issue.status === 'recent' ? `<button class="btn-upvote" data-id="${issue.id}" ${hasVoted ? 'disabled' : ''} aria-pressed="${hasVoted ? 'true' : 'false'}">${hasVoted ? 'Voted ✓' : 'Upvote'}</button>` : ''}
         ${role === 'admin' ? `
-          <select class="priority-select" data-issue-id="${issue.id}" aria-label="Change priority">
+          <select class="priority-select" data-issue-id="${issue.id}" aria-label="Change priority" ${issue.status === 'completed' ? 'disabled' : ''}>
             <option value="low" ${issue.priority === 'low' ? 'selected' : ''}>Low</option>
             <option value="medium" ${issue.priority === 'medium' ? 'selected' : ''}>Medium</option>
             <option value="immediate" ${issue.priority === 'immediate' ? 'selected' : ''}>Immediate</option>
             <option value="urgent" ${issue.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
           </select>
           <button class="advance-status" data-issue-id="${issue.id}" ${issue.status === 'completed' ? 'disabled' : ''}>${issue.status === 'completed' ? 'Completed' : 'Advance Status'}</button>
+          <button class="revert-status" data-issue-id="${issue.id}" ${issue.status === 'recent' || issue.status === 'completed' ? 'disabled' : ''}>Revert Status</button>
+          <button class="delete-issue" data-issue-id="${issue.id}">Delete Issue</button>
+          <select class="dept-select" data-issue-id="${issue.id}" aria-label="Change department" ${issue.status === 'completed' ? 'disabled' : ''}>
+            ${DEPARTMENTS.map(dept => `<option value="${dept}" ${issue.department === dept ? 'selected' : ''}>${dept}</option>`).join('')}
+          </select>
+          <input type="number" class="expense-input" data-issue-id="${issue.id}" value="${issue.expense || 0}" aria-label="Change expense" style="width:80px;" ${issue.status === 'completed' ? 'disabled' : ''}>
         ` : ''}
       </div>
     `;
@@ -662,6 +668,7 @@
   async function handlePriorityChange(issueId, newPriority) {
     const issue = findIssueById(issueId);
     if (!issue) return;
+    if (issue.status === 'completed') return;
     if (issue.priority === newPriority) return;
     try {
       await window.dataService.updateIssue(issueId, { priority: newPriority });
@@ -686,6 +693,64 @@
     } catch (e) {
       console.error('Status advance failed', e);
       notify('Failed to advance status');
+    }
+  }
+
+  // Admin: revert status
+  async function handleRevert(issueId) {
+    const issue = findIssueById(issueId);
+    if (!issue) return;
+    if (issue.status === 'completed') return;
+    const idx = STATUS_ORDER.indexOf(issue.status);
+    if (idx <= 0) return;
+    const prev = STATUS_ORDER[idx - 1];
+    try {
+      await window.dataService.updateIssue(issueId, { status: prev });
+    } catch (e) {
+      console.error('Status revert failed', e);
+      notify('Failed to revert status');
+    }
+  }
+
+  // Admin: delete issue
+  async function handleDelete(issueId) {
+    if (!confirm('Are you sure you want to delete this issue?')) return;
+    try {
+      await window.dataService.deleteIssue(issueId);
+      await refreshIssuesFromServer();
+      notify('Issue deleted successfully');
+    } catch (e) {
+      console.error('Delete failed', e);
+      notify('Failed to delete issue');
+    }
+  }
+
+  // Admin: change department
+  async function handleDeptChange(issueId, newDept) {
+    const issue = findIssueById(issueId);
+    if (!issue) return;
+    if (issue.status === 'completed') return;
+    if (issue.department === newDept) return;
+    try {
+      await window.dataService.updateIssue(issueId, { department: newDept });
+    } catch (e) {
+      console.error('Department update failed', e);
+      notify('Failed to update department');
+    }
+  }
+
+  // Admin: change expense
+  async function handleExpenseChange(issueId, newExpense) {
+    const issue = findIssueById(issueId);
+    if (!issue) return;
+    if (issue.status === 'completed') return;
+    const num = parseFloat(newExpense) || 0;
+    if (issue.expense === num) return;
+    try {
+      await window.dataService.updateIssue(issueId, { expense: num });
+    } catch (e) {
+      console.error('Expense update failed', e);
+      notify('Failed to update expense');
     }
   }
 
@@ -735,6 +800,18 @@
       handleStatusAdvance(id);
       return;
     }
+    const rev = e.target.closest('.revert-status');
+    if (rev) {
+      const id = rev.getAttribute('data-issue-id');
+      handleRevert(id);
+      return;
+    }
+    const del = e.target.closest('.delete-issue');
+    if (del) {
+      const id = del.getAttribute('data-issue-id');
+      handleDelete(id);
+      return;
+    }
   }
 
   function globalChangeHandler(e) {
@@ -742,6 +819,19 @@
     if (sel) {
       const id = sel.getAttribute('data-issue-id');
       handlePriorityChange(id, sel.value);
+      return;
+    }
+    const deptSel = e.target.closest('.dept-select');
+    if (deptSel) {
+      const id = deptSel.getAttribute('data-issue-id');
+      handleDeptChange(id, deptSel.value);
+      return;
+    }
+    const expInp = e.target.closest('.expense-input');
+    if (expInp) {
+      const id = expInp.getAttribute('data-issue-id');
+      handleExpenseChange(id, expInp.value);
+      return;
     }
   }
 

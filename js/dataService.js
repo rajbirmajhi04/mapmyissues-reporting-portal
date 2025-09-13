@@ -76,6 +76,12 @@ async function updateIssue(issueId, fields) {
   if (error) throw error;
 }
 
+async function deleteIssue(issueId) {
+  const sb = getSupabase();
+  const { error } = await sb.from('issues').delete().eq('id', issueId);
+  if (error) throw error;
+}
+
 function subscribeRealtime(onChange) {
   const sb = getSupabase();
   const channel = sb.channel('issues-and-votes');
@@ -91,6 +97,7 @@ window.dataService = {
   createIssue,
   addVote,
   updateIssue,
+  deleteIssue,
   subscribeRealtime
 };
 
