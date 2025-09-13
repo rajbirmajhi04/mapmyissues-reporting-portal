@@ -118,6 +118,7 @@
       issues = list;
       renderBoardColumns();
       if (role === 'citizen') renderInsights();
+      else if (role === 'admin') renderLeftPanel();
     } catch (e) {
       console.error('Failed to load issues', e);
       notify('Unable to load issues from server');
@@ -232,13 +233,13 @@
 
         <div>
           <label for="issueType">Issue Type</label>
-          <input 
-            type="text" 
-            id="issueType" 
-            name="type" 
-            placeholder="Enter issue type..." 
-            list="issueTypeOptions" 
-            required 
+          <input
+            type="text"
+            id="issueType"
+            name="type"
+            placeholder="Enter issue type..."
+            list="issueTypeOptions"
+            required
             aria-required="true"
             autocomplete="off"
             style="width: 100%; padding: 0.4em; box-sizing: border-box;"
@@ -296,6 +297,18 @@
   }
 
   function renderAdminPanel() {
+    const completedIssues = issues.filter(i => i.status === 'completed');
+    const priorityCounts = { low: 0, medium: 0, immediate: 0, urgent: 0 };
+    completedIssues.forEach(issue => {
+      priorityCounts[issue.priority] = (priorityCounts[issue.priority] || 0) + 1;
+    });
+    const deptCounts = {};
+    completedIssues.forEach(issue => {
+      deptCounts[issue.department] = (deptCounts[issue.department] || 0) + 1;
+    });
+    const topDept = Object.keys(deptCounts).length > 0 ? Object.entries(deptCounts).sort((a,b)=>b[1]-a[1])[0][0] : 'None';
+    const totalSpending = completedIssues.reduce((s, it) => s + (it.expense || 0), 0);
+
     leftPanel.innerHTML = `
       <h2>Admin Controls</h2>
       <div class="admin-form">
@@ -308,6 +321,19 @@
             <li><strong>Immediate</strong>: Orange - High priority</li>
             <li><strong>Urgent</strong>: Red - Critical issues</li>
           </ul>
+        </div>
+        <div class="admin-insights" style="margin-top: 2em; padding: 1em; background: #f0f8ff; border-radius: 6px;">
+          <h3>Admin Insights</h3>
+          <div style="margin-top: 0.5em;">
+            <strong>Issues Solved by Priority:</strong><br>
+            Low: ${priorityCounts.low}, Medium: ${priorityCounts.medium}, Immediate: ${priorityCounts.immediate}, Urgent: ${priorityCounts.urgent}
+          </div>
+          <div style="margin-top: 0.5em;">
+            <strong>Top Performing Department:</strong> ${escapeHtml(topDept)}
+          </div>
+          <div style="margin-top: 0.5em;">
+            <strong>Total Spendings:</strong> ${formatCurrency(totalSpending)}
+          </div>
         </div>
       </div>
     `;
@@ -403,13 +429,18 @@
 
   function renderInsights() {
     if (role !== 'citizen') return;
-    const completedCount = issues.filter(i => i.status === 'completed').length;
-    const totalSpending = issues.filter(i => i.status === 'completed').reduce((s, it) => s + (it.expense || 0), 0);
+    const completedIssues = issues.filter(i => i.status === 'completed');
+    const completedCount = completedIssues.length;
+    const totalSpending = completedIssues.reduce((s, it) => s + (it.expense || 0), 0);
     const deptCounts = {};
-    issues.filter(i => i.status === 'completed').forEach(issue => {
+    completedIssues.forEach(issue => {
       deptCounts[issue.department] = (deptCounts[issue.department] || 0) + 1;
     });
     const topDept = Object.keys(deptCounts).length > 0 ? Object.entries(deptCounts).sort((a,b)=>b[1]-a[1])[0][0] : 'None';
+    const priorityCounts = { low: 0, medium: 0, immediate: 0, urgent: 0 };
+    completedIssues.forEach(issue => {
+      priorityCounts[issue.priority] = (priorityCounts[issue.priority] || 0) + 1;
+    });
 
     insightsSection.innerHTML = `
       <h3>Community Insights</h3>
@@ -422,6 +453,10 @@
         </div>
         <div style="background:#fff3e0; padding:1em; border-radius:6px;">
           <strong>Total Spending</strong><br><span style="font-size:1.2em; font-weight:bold;">${formatCurrency(totalSpending)}</span>
+        </div>
+        <div style="background:#f0f8ff; padding:1em; border-radius:6px;">
+          <strong>Issues Solved by Priority</strong><br>
+          <small>Low: ${priorityCounts.low}, Medium: ${priorityCounts.medium}, Immediate: ${priorityCounts.immediate}, Urgent: ${priorityCounts.urgent}</small>
         </div>
       </div>
     `;
