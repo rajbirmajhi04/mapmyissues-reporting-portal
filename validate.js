@@ -50,22 +50,7 @@ async function validateIssues() {
         } else if (descLower.includes('water') || descLower.includes('leak')) {
           category = 'water leakage';
         }
-
-        // Assign confidence
-        const hasKeyword = category !== 'other';
-        if (hasKeyword && image_url) {
-          confidence = 0.9;
-        } else if (hasKeyword && !image_url) {
-          confidence = 0.7;
-        } else if (!hasKeyword && image_url) {
-          confidence = 0.5;
-        } else {
-          confidence = 0.2;
-        }
       }
-
-      const isAuthentic = confidence > 0.75 && !isSpam;
-      const aiDecision = isAuthentic ? 'authentic' : isSpam ? 'spam' : 'uncertain';
 
       // Update issue
       const { error: updateError } = await supabase
@@ -77,25 +62,6 @@ async function validateIssues() {
         console.error(`Error updating issue ${id}:`, updateError);
         continue;
       }
-
-      // Insert audit
-      const { error: auditError } = await supabase
-        .from('issue_ai_audit')
-        .insert({
-          issue_id: id,  // Assuming id is UUID string
-          ai_decision: aiDecision,
-          confidence,
-          category,
-          model_used: 'keyword-based'
-        });
-
-      if (auditError) {
-        console.error(`Error inserting audit for issue ${id}:`, auditError);
-      }
-
-      // Log
-      const status = isAuthentic ? 'authentic' : isSpam ? 'spam' : 'uncertain';
-      console.log(`✅ Processed issue ${id} → ${status} (${category})`);
     }
   } catch (err) {
     console.error('Unexpected error:', err);

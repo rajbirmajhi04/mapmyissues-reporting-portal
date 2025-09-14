@@ -2,8 +2,6 @@
   /* ===========================
      Constants & Demo Data
      =========================== */
-  const STORAGE_KEY = 'civic_issues_data_v2';
-  const POLL_INTERVAL_MS = 1500;
   const AUTOSUGGEST_DEBOUNCE_MS = 300;
   const DUPLICATE_DISTANCE_THRESHOLD = 0.0005;
 
@@ -44,63 +42,13 @@
     "Disaster / Emergency Situations (floods etc.) - Odisha State Disaster Management Authority"
   ];
 
-  const DEMO_ISSUES = [
-    {
-      id: 'demo1',
-      type: 'pothole',
-      description: 'Big pothole near Master Canteen square, causing traffic jams.',
-      location: 'Master Canteen Square, Bhubaneswar',
-      coordinates: { lat: 20.2686, lng: 85.8430 },
-      photo: '',
-      votes: 3,
-      priority: 'medium',
-      status: 'recent',
-      department: 'Road Maintenance',
-      expense: 15000,
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
-      votedBy: ['citizen1']
-    },
-    {
-      id: 'demo2',
-      type: 'streetlight',
-      description: 'Streetlight not working near KIIT Square.',
-      location: 'KIIT Square, Bhubaneswar',
-      coordinates: { lat: 20.3551, lng: 85.8192 },
-      photo: '',
-      votes: 5,
-      priority: 'immediate',
-      status: 'queue',
-      department: 'Electrical',
-      expense: 2500,
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1,
-      votedBy: ['citizen1','user2','user3','user4','user5']
-    },
-    {
-      id: 'demo3',
-      type: 'garbage',
-      description: 'Garbage pile-up near Rupali Square bus stop.',
-      location: 'Rupali Square, Bhubaneswar',
-      coordinates: { lat: 20.2940, lng: 85.8253 },
-      photo: '',
-      votes: 1,
-      priority: 'low',
-      status: 'inprogress',
-      department: 'Sanitation',
-      expense: 800,
-      createdAt: Date.now() - 1000 * 60 * 60 * 12,
-      votedBy: ['user6']
-    }
-  ];
-
   /* ===========================
      App State & DOM refs
      =========================== */
   let issues = [];
   let username = null;
   let role = null;
-  let pollTimer = null;
   let autosuggestTimer = null;
-  let lastSavedAt = 0;
   let unsubscribeRealtime = null;
 
   // DOM refs set in init
@@ -109,16 +57,6 @@
   /* ===========================
      Utilities
      =========================== */
-  function generateId() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    return 'id-' + Math.random().toString(36).substr(2, 9);
-  }
-
-  function now() {
-    return Date.now();
-  }
 
   // Detect current page type
   function getCurrentPageType() {
@@ -375,7 +313,6 @@
   // Pagination state
   const PAGE_SIZE = 10;
   let currentPage = 1;
-  let currentStatus = 'recent';
 
   // New state for completed page filters and sorting
   let completedFilterPriority = '';
@@ -699,18 +636,6 @@
     }
   };
 
-  // Pagination helpers for status pages
-  function getIssuesByStatusPaged(status, page = 1) {
-    if (status === 'history') {
-      const filteredSorted = getFilteredSortedHistoryIssues();
-      const start = (page - 1) * PAGE_SIZE;
-      return filteredSorted.slice(start, start + PAGE_SIZE);
-    }
-    const allIssues = sortIssuesForColumn(issues, status);
-    const start = (page - 1) * PAGE_SIZE;
-    return allIssues.slice(start, start + PAGE_SIZE);
-  }
-
   function renderPaginationControls(totalItems, page, onPageChange) {
     const container = document.getElementById('paginationControls');
     if (!container) return;
@@ -771,16 +696,6 @@
       currentPage = newPage;
       renderStatusPage(status);
     });
-  }
-
-  function getColumnByStatus(status) {
-    switch (status) {
-      case 'recent': return recentColumn;
-      case 'queue': return queueColumn;
-      case 'inprogress': return inprogressColumn;
-      case 'completed': return completedColumn;
-      default: return null;
-    }
   }
 
   function createIssueCard(issue) {
@@ -1056,17 +971,6 @@
       },
       { timeout: 10000 }
     );
-  }
-
-  // File -> base64 utility returning Promise
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      if (!file) return resolve('');
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (e) => reject(e);
-      reader.readAsDataURL(file);
-    });
   }
 
   // Submission
