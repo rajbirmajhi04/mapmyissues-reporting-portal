@@ -70,9 +70,9 @@
     return 'dashboard'; // default
   }
 
-  async function refreshIssuesFromServer() {
+  async function refreshIssuesFromServer(force = false) {
     try {
-      const list = await window.dataService.fetchAllIssuesWithVotes();
+      const list = await window.dataService.fetchAllIssuesWithVotes(username, force);
       issues = list;
 
       const pageType = getCurrentPageType();

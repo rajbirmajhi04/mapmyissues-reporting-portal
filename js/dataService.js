@@ -1,8 +1,11 @@
 
 const SUPABASE_BUCKET = 'issue-photos';
+const CACHE_KEY = 'issues_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-function mapDbIssueToClient(issueRow, votesByIssue) { // raw database row (issueRow) to a format that the frontend can use directly.
-  const votedBy = votesByIssue.get(issueRow.id) || [];
+function mapDbIssueToClient(issueRow, userVotedIssues, username) { // raw database row (issueRow) to a format that the frontend can use directly.
+  const votedBy = userVotedIssues.has(issueRow.id) ? [username] : [];
+  const voteCount = issueRow.votes?.[0]?.count || 0;
   return {
     id: issueRow.id,
     type: issueRow.type,
@@ -10,7 +13,7 @@ function mapDbIssueToClient(issueRow, votesByIssue) { // raw database row (issue
     location: issueRow.location,
     coordinates: { lat: issueRow.latitude, lng: issueRow.longitude },
     photo: issueRow.photo_url || '',
-    votes: issueRow.votes_count ?? votedBy.length,
+    votes: voteCount,
     priority: issueRow.priority,
     status: issueRow.status,
     department: issueRow.department || '',
@@ -20,23 +23,32 @@ function mapDbIssueToClient(issueRow, votesByIssue) { // raw database row (issue
   };
 }
 
-async function fetchAllIssuesWithVotes() { // Fetching all issues with votes
+async function fetchAllIssuesWithVotes(username, force = false) { // Fetching all issues with votes, optimized with caching and aggregations
+  if (!force) {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        return data;
+      }
+    }
+  }
+
   const sb = getSupabase();
   const [issuesRes, votesRes] = await Promise.all([
-    sb.from('issues').select('*').order('created_at', { ascending: false }),
-    sb.from('votes').select('issue_id,user_name')
+    sb.from('issues').select('*, votes(count)').order('created_at', { ascending: false }),
+    sb.from('votes').select('issue_id').eq('user_name', username)
   ]);
   if (issuesRes.error) throw issuesRes.error;
   if (votesRes.error) throw votesRes.error;
 
-  const votesByIssue = new Map();
-  (votesRes.data || []).forEach(v => {
-    const list = votesByIssue.get(v.issue_id) || [];
-    list.push(v.user_name);
-    votesByIssue.set(v.issue_id, list);
-  });
+  const userVotedIssues = new Set(votesRes.data.map(v => v.issue_id));
 
-  return (issuesRes.data || []).map(row => mapDbIssueToClient(row, votesByIssue));
+  const result = (issuesRes.data || []).map(row => mapDbIssueToClient(row, userVotedIssues, username));
+
+  localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, timestamp: Date.now() }));
+
+  return result;
 }
 
 async function uploadPhotoIfNeeded(file) { // Uploading photos to Supabase Storage
@@ -110,8 +122,14 @@ async function logLogout(username) {
 function subscribeRealtime(onChange) {
   const sb = getSupabase();
   const channel = sb.channel('issues-and-votes');
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, onChange);
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, onChange);
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, () => {
+    localStorage.removeItem(CACHE_KEY);
+    onChange();
+  });
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, () => {
+    localStorage.removeItem(CACHE_KEY);
+    onChange();
+  });
   channel.subscribe();
   return () => sb.removeChannel(channel);
 }
