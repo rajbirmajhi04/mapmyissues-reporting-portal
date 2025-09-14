@@ -146,6 +146,11 @@
 
       if (role === 'citizen') renderInsights();
       else if (role === 'admin') renderLeftPanel();
+
+      // Update modal content if open
+      if (currentOpenModalStatus) {
+        renderModalContent(currentOpenModalStatus);
+      }
     } catch (e) {
       console.error('Failed to load issues', e);
       notify('Unable to load issues from server');
@@ -555,6 +560,39 @@
       </div>
     `;
   }
+
+  /* ===========================
+     Modal Functions
+     =========================== */
+  let currentOpenModalStatus = null;
+
+  function openModal(status) {
+    const modal = document.getElementById(`modal-${status}`);
+    if (!modal) return;
+    currentOpenModalStatus = status;
+    renderModalContent(status);
+    modal.style.display = 'block';
+  }
+
+  function closeModal() {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(m => m.style.display = 'none');
+    currentOpenModalStatus = null;
+  }
+
+  function renderModalContent(status) {
+    const body = document.getElementById(`modal-${status}-body`);
+    if (!body) return;
+    body.innerHTML = '';
+    const filteredIssues = sortIssuesForColumn(issues, status);
+    filteredIssues.forEach(issue => {
+      body.appendChild(createIssueCard(issue));
+    });
+  }
+
+  // Make functions global
+  window.openModal = openModal;
+  window.closeModal = closeModal;
 
   /* ===========================
      Event Handlers & Actions

@@ -24,10 +24,10 @@
       <div class="status-navigation">
         <h3>View Issues By Status:</h3>
         <div class="nav-links">
-          <a href="recent.html" class="nav-link">Recent Issues</a>
-          <a href="queue.html" class="nav-link">Queue Issues</a>
-          <a href="inprogress.html" class="nav-link">In Progress Issues</a>
-          <a href="completed.html" class="nav-link">Completed Issues</a>
+          <button class="nav-link" onclick="openModal('recent')">Recent Issues</button>
+          <button class="nav-link" onclick="openModal('queue')">Queue Issues</button>
+          <button class="nav-link" onclick="openModal('inprogress')">In Progress Issues</button>
+          <button class="nav-link" onclick="openModal('completed')">Completed Issues</button>
         </div>
       </div>
 
@@ -55,6 +55,51 @@
       </section>
     </section>
   </main>
+
+  <!-- Modals -->
+  <div id="modal-recent" class="modal">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Recent Issues</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-recent-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-queue" class="modal">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Queue Issues</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-queue-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-inprogress" class="modal">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>In Progress Issues</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-inprogress-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-completed" class="modal">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Completed Issues</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-completed-body"></div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabaseClient.js"></script>
