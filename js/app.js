@@ -120,11 +120,30 @@
     return Date.now();
   }
 
+  // Detect current page type
+  function getCurrentPageType() {
+    const path = window.location.pathname;
+    if (path.includes('dashboard.html')) return 'dashboard';
+    if (path.includes('recent.html')) return 'recent';
+    if (path.includes('queue.html')) return 'queue';
+    if (path.includes('inprogress.html')) return 'inprogress';
+    if (path.includes('completed.html')) return 'completed';
+    return 'dashboard'; // default
+  }
+
   async function refreshIssuesFromServer() {
     try {
       const list = await window.dataService.fetchAllIssuesWithVotes();
       issues = list;
-      renderBoardColumns();
+
+      const pageType = getCurrentPageType();
+      if (pageType === 'dashboard') {
+        renderBoardColumns();
+      } else {
+        // For individual status pages, render only that status with pagination
+        renderStatusPage(pageType);
+      }
+
       if (role === 'citizen') renderInsights();
       else if (role === 'admin') renderLeftPanel();
     } catch (e) {
@@ -347,6 +366,11 @@
     `;
   }
 
+  // Pagination state
+  const PAGE_SIZE = 10;
+  let currentPage = 1;
+  let currentStatus = 'recent';
+
   function renderBoardColumns() {
     if (!recentColumn) return;
     // Clear columns
@@ -376,6 +400,57 @@
     queueList.forEach(i => queueColumn.appendChild(createIssueCard(i)));
     inprogressList.forEach(i => inprogressColumn.appendChild(createIssueCard(i)));
     completedList.forEach(i => completedColumn.appendChild(createIssueCard(i)));
+  }
+
+  // Pagination helpers for status pages
+  function getIssuesByStatusPaged(status, page = 1) {
+    const allIssues = sortIssuesForColumn(issues, status);
+    const start = (page - 1) * PAGE_SIZE;
+    return allIssues.slice(start, start + PAGE_SIZE);
+  }
+
+  function renderPaginationControls(totalItems, page, onPageChange) {
+    const container = document.getElementById('paginationControls');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+    if (totalPages <= 1) return;
+
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
+    prevBtn.disabled = page <= 1;
+    prevBtn.addEventListener('click', () => onPageChange(page - 1));
+    container.appendChild(prevBtn);
+
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'pagination-info';
+    pageInfo.textContent = `Page ${page} of ${totalPages}`;
+    container.appendChild(pageInfo);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
+    nextBtn.disabled = page >= totalPages;
+    nextBtn.addEventListener('click', () => onPageChange(page + 1));
+    container.appendChild(nextBtn);
+  }
+
+  // Render issues for a specific status page with pagination
+  function renderStatusPage(status) {
+    currentStatus = status;
+    const containerId = status + 'Column';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const pagedIssues = getIssuesByStatusPaged(status, currentPage);
+    container.innerHTML = '';
+    pagedIssues.forEach(issue => container.appendChild(createIssueCard(issue)));
+
+    const totalIssues = issues.filter(i => i.status === status).length;
+    renderPaginationControls(totalIssues, currentPage, (newPage) => {
+      currentPage = newPage;
+      renderStatusPage(status);
+    });
   }
 
   function getColumnByStatus(status) {
@@ -416,7 +491,7 @@
         <div class="priority" style="margin-left:auto;">Priority: ${PRIORITY_DISPLAY[issue.priority] || capitalize(issue.priority)}</div>
       </div>
       ${role === 'citizen' ? `<div style="font-size:0.85em; color:#444; margin-top:0.4rem;">Department: ${escapeHtml(issue.department)} • Est. Cost: ${formatCurrency(issue.expense)}</div>` : ''}
-      ${issue.photo ? `<img src="${issue.photo}" alt="Photo of ${escapeHtml(issue.type)} at ${escapeHtml(issue.location)}" style="max-width:100%; margin-top:0.5rem; border-radius:4px;">` : ''}
+      ${issue.photo ? `<img class="photo" src="${issue.photo}" alt="Photo of ${escapeHtml(issue.type)} at ${escapeHtml(issue.location)}">` : ''}
       <div class="card-controls" style="margin-top:0.6rem; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         ${role === 'citizen' && ['recent', 'queue', 'inprogress'].includes(issue.status) ? `<button class="btn-upvote" data-id="${issue.id}" ${hasVoted ? 'disabled' : ''} aria-pressed="${hasVoted ? 'true' : 'false'}">${hasVoted ? 'Voted ✓' : 'Upvote'}</button>` : ''}
         ${role === 'admin' ? `
@@ -670,7 +745,13 @@
     let photo_url = '';
     try {
       if (photoFile && photoFile.size && photoFile.type.startsWith('image/')) {
-        photo_url = await window.dataService.uploadPhotoIfNeeded(photoFile);
+        if (photoFile.size > 5 * 1024 * 1024) {
+          statusEl.textContent = 'Photo file size must be less than 5MB.';
+          return;
+        }
+        // Resize image before upload
+        const resizedFile = await resizeImageFile(photoFile, 800, 600, 0.8);
+        photo_url = await window.dataService.uploadPhotoIfNeeded(resizedFile);
       }
     } catch (err) {
       console.warn('Photo upload failed:', err);
@@ -701,6 +782,54 @@
       console.error('Create issue failed', e2);
       notify('Failed to submit issue');
     }
+  }
+
+  // Resize image file utility
+  async function resizeImageFile(file, maxWidth, maxHeight, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const resizedFile = new File([blob], file.name, { type: file.type });
+                resolve(resizedFile);
+              } else {
+                reject(new Error('Canvas is empty'));
+              }
+            },
+            file.type,
+            quality
+          );
+        };
+        img.onerror = (err) => reject(err);
+        img.src = e.target.result;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
   }
 
   // Upvote (citizen)

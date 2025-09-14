@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard</title>
+  <title>Queue Issues - MapMyIssues Dashboard</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -21,32 +21,11 @@
     </section>
 
     <section class="right-panel">
-      <div class="status-navigation">
-        <h3>View Issues By Status:</h3>
-        <div class="nav-links">
-          <a href="recent.html" class="nav-link">Recent Issues</a>
-          <a href="queue.html" class="nav-link">Queue Issues</a>
-          <a href="inprogress.html" class="nav-link">In Progress Issues</a>
-          <a href="completed.html" class="nav-link">Completed Issues</a>
-        </div>
-      </div>
-
       <div class="board-columns">
-        <div class="board-column" data-status="recent">
-          <h2>Recent</h2>
-          <div class="cards-container" id="recentColumn"></div>
-        </div>
         <div class="board-column" data-status="queue">
-          <h2>Queue</h2>
+          <h2>Queue Issues</h2>
           <div class="cards-container" id="queueColumn"></div>
-        </div>
-        <div class="board-column" data-status="inprogress">
-          <h2>In Progress</h2>
-          <div class="cards-container" id="inprogressColumn"></div>
-        </div>
-        <div class="board-column" data-status="completed">
-          <h2>Completed</h2>
-          <div class="cards-container" id="completedColumn"></div>
+          <div class="pagination-controls" id="paginationControls"></div>
         </div>
       </div>
 
