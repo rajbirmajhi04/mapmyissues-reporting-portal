@@ -11,17 +11,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const isValidAdmin = role === 'admin' && /^admin\d+$/.test(username.toLowerCase());
 
     if (isValidCitizen || isValidAdmin) {
-      try {
+    try {
         await dataService.logLogin(username, role);
         sessionStorage.setItem('username', username);
         sessionStorage.setItem('role', role);
         window.location.href = 'dashboard.html';
       } catch (error) {
         console.error('Failed to log login:', error);
-        alert('Login successful, but failed to record in database. Proceeding to dashboard.');
-        sessionStorage.setItem('username', username);
-        sessionStorage.setItem('role', role);
-        window.location.href = 'dashboard.html';
+        if (error.message === 'User is already logged in from another session.') {
+          alert('Login failed: ' + error.message);
+        } else {
+          alert('Login successful, but failed to record in database. Proceeding to dashboard.');
+          sessionStorage.setItem('username', username);
+          sessionStorage.setItem('role', role);
+          window.location.href = 'dashboard.html';
+        }
       }
     } else {
       alert('Invalid username or role combination. Use citizen1, citizen2, etc. for citizens, or admin1, admin2, etc. for admins.');

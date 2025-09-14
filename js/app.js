@@ -381,7 +381,7 @@
     card.style.background = '#fff';
 
     const hasVoted = issue.votedBy && issue.votedBy.includes(username);
-    const canVote = role === 'citizen' && issue.status === 'recent' && !hasVoted;
+    const canVote = role === 'citizen' && ['recent', 'queue', 'inprogress'].includes(issue.status) && !hasVoted;
 
     // Build inner HTML
     card.innerHTML = `
@@ -399,7 +399,7 @@
       ${role === 'citizen' ? `<div style="font-size:0.85em; color:#444; margin-top:0.4rem;">Department: ${escapeHtml(issue.department)} • Est. Cost: ${formatCurrency(issue.expense)}</div>` : ''}
       ${issue.photo ? `<img src="${issue.photo}" alt="Photo of ${escapeHtml(issue.type)} at ${escapeHtml(issue.location)}" style="max-width:100%; margin-top:0.5rem; border-radius:4px;">` : ''}
       <div class="card-controls" style="margin-top:0.6rem; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        ${role === 'citizen' && issue.status === 'recent' ? `<button class="btn-upvote" data-id="${issue.id}" ${hasVoted ? 'disabled' : ''} aria-pressed="${hasVoted ? 'true' : 'false'}">${hasVoted ? 'Voted ✓' : 'Upvote'}</button>` : ''}
+        ${role === 'citizen' && ['recent', 'queue', 'inprogress'].includes(issue.status) ? `<button class="btn-upvote" data-id="${issue.id}" ${hasVoted ? 'disabled' : ''} aria-pressed="${hasVoted ? 'true' : 'false'}">${hasVoted ? 'Voted ✓' : 'Upvote'}</button>` : ''}
         ${role === 'admin' ? `
           <select class="priority-select" data-issue-id="${issue.id}" aria-label="Change priority" ${issue.status === 'completed' ? 'disabled' : ''}>
             <option value="low" ${issue.priority === 'low' ? 'selected' : ''}>Low</option>
@@ -688,7 +688,7 @@
   async function handleUpvote(issueId) {
     const issue = findIssueById(issueId);
     if (!issue) return;
-    if (issue.status !== 'recent') return;
+    if (!['recent', 'queue', 'inprogress'].includes(issue.status)) return;
     if (issue.votedBy && issue.votedBy.includes(username)) return;
     try {
       await window.dataService.addVote(issueId, username);
@@ -900,7 +900,12 @@
 
     // logout
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await window.dataService.logLogout(username);
+        } catch (error) {
+          console.error('Failed to log logout:', error);
+        }
         sessionStorage.clear();
         window.location.href = 'index.html';
       });
