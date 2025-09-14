@@ -1,8 +1,7 @@
-// Data service that wraps Supabase operations (no auth; username from session)
 
 const SUPABASE_BUCKET = 'issue-photos';
 
-function mapDbIssueToClient(issueRow, votesByIssue) {
+function mapDbIssueToClient(issueRow, votesByIssue) { // raw database row (issueRow) to a format that the frontend can use directly.
   const votedBy = votesByIssue.get(issueRow.id) || [];
   return {
     id: issueRow.id,
@@ -21,7 +20,7 @@ function mapDbIssueToClient(issueRow, votesByIssue) {
   };
 }
 
-async function fetchAllIssuesWithVotes() {
+async function fetchAllIssuesWithVotes() { // Fetching all issues with votes
   const sb = getSupabase();
   const [issuesRes, votesRes] = await Promise.all([
     sb.from('issues').select('*').order('created_at', { ascending: false }),
@@ -40,7 +39,7 @@ async function fetchAllIssuesWithVotes() {
   return (issuesRes.data || []).map(row => mapDbIssueToClient(row, votesByIssue));
 }
 
-async function uploadPhotoIfNeeded(file) {
+async function uploadPhotoIfNeeded(file) { // Uploading photos to Supabase Storage
   if (!file || !file.size) return '';
   const sb = getSupabase();
   const fileExt = (file.name && file.name.split('.').pop()) || 'jpg';
