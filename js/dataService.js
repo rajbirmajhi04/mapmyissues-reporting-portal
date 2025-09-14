@@ -110,7 +110,6 @@ async function logLogout(username) {
     .eq('username', username)
     .is('logged_out_at', null)
     .order('timestamp', { ascending: false })
-    .limit(1);
   if (fetchError) throw fetchError;
   if (activeLogins && activeLogins.length > 0) {
     const { error } = await sb

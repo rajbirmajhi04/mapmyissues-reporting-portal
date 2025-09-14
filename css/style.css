@@ -226,6 +226,11 @@ button:focus {
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+.issue-card select.dept-select {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .issue-card button.advance-status {
   background-color: #28a745;
   color: white;

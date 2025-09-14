@@ -13,10 +13,14 @@
     'Vani Vihar','Rasulgarh','Laxmi Sagar','Acharya Vihar','Jagamara','Palasuni','Mancheswar',
   ];
 
-  const ISSUE_TYPES = [
-    'pothole','streetlight','garbage','water leak','sidewalk damage',
-    'traffic signal','graffiti','parks maintenance','drainage','noise complaint','others'
-  ];
+  const ISSUE_TYPES = {
+    roads: ["pothole", "sidewalk damage"],
+    utilities: ["water leak", "streetlight", "traffic signal"],
+    sanitation: ["garbage", "drainage"],
+    public_space: ["parks maintenance", "graffiti"],
+    environment: ["noise complaint"],
+    others: ["others"]
+  };
 
   const STATUS_ORDER = ['recent', 'queue', 'inprogress', 'completed'];
 
@@ -30,10 +34,14 @@
   const PRIORITY_RANK = { urgent: 3, immediate: 2, medium: 1, low: 0 };
 
   const DEPARTMENTS = [
-    'Road Maintenance','Electrical','Sanitation','Waterworks','Parks & Rec',
-    'Public Safety','Transportation','Housing & Urban Development','Environmental Services',
-    'Health & Human Services','Planning & Zoning','Information Technology','Finance & Budget',
-    'Emergency Management','Community Development'
+    "Roads / Road Maintenance / Bridges / National Highways - Works Department, Govt. of Odisha",
+    "Rural Roads / Minor Roads - Rural Development Department",
+    "Traffic Law & Enforcement - Bhubaneswar–Cuttack Police Commissionerate",
+    "Urban Planning & Infrastructure Development - Bhubaneswar Development Authority (BDA)",
+    "Water Supply & Sewerage / Urban Water Issues - Public Health Engineering Organisation (PHEO)",
+    "Water Resources / Dams / Irrigation etc. - Department of Water Resources, Odisha",
+    "Drainage / Stormwater / Flooding / Water logging in city - Bhubaneswar Municipal Corporation",
+    "Disaster / Emergency Situations (floods etc.) - Odisha State Disaster Management Authority"
   ];
 
   const DEMO_ISSUES = [
@@ -245,7 +253,7 @@
             style="width: 100%; padding: 0.4em; box-sizing: border-box;"
           >
           <datalist id="issueTypeOptions">
-            ${ISSUE_TYPES.map(type => `<option value="${capitalize(type)}"></option>`).join('')}
+            ${Object.values(ISSUE_TYPES).flat().map(type => `<option value="${capitalize(type)}"></option>`).join('')}
           </datalist>
         </div>
 
@@ -352,6 +360,17 @@
     const queueList = sortIssuesForColumn(issues, 'queue');
     const inprogressList = sortIssuesForColumn(issues, 'inprogress');
     const completedList = sortIssuesForColumn(issues, 'completed');
+
+    // Update column headers with counts
+    const recentHeader = document.querySelector('.board-column[data-status="recent"] h2');
+    const queueHeader = document.querySelector('.board-column[data-status="queue"] h2');
+    const inprogressHeader = document.querySelector('.board-column[data-status="inprogress"] h2');
+    const completedHeader = document.querySelector('.board-column[data-status="completed"] h2');
+
+    if (recentHeader) recentHeader.textContent = `Recent (${recentList.length})`;
+    if (queueHeader) queueHeader.textContent = `Queue (${queueList.length})`;
+    if (inprogressHeader) inprogressHeader.textContent = `In Progress (${inprogressList.length})`;
+    if (completedHeader) completedHeader.textContent = `Completed (${completedList.length})`;
 
     recentList.forEach(i => recentColumn.appendChild(createIssueCard(i)));
     queueList.forEach(i => queueColumn.appendChild(createIssueCard(i)));
