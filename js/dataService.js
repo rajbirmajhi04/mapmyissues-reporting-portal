@@ -84,18 +84,6 @@ async function deleteIssue(issueId) {
 
 async function logLogin(username, role) {
   const sb = getSupabase();
-  // Check if user is already logged in
-  const { data: activeLogins, error: checkError } = await sb
-    .from('login_logs')
-    .select('*')
-    .eq('username', username)
-    .is('logged_out_at', null)
-    .order('timestamp', { ascending: false })
-    .limit(1);
-  if (checkError) throw checkError;
-  if (activeLogins && activeLogins.length > 0) {
-    throw new Error('User is already logged in from another session.');
-  }
   // Insert new login record
   const { error } = await sb.from('login_logs').insert([{ username, role }]);
   if (error) throw error;

@@ -128,6 +128,7 @@
     if (path.includes('queue.html')) return 'queue';
     if (path.includes('inprogress.html')) return 'inprogress';
     if (path.includes('completed.html')) return 'completed';
+    if (path.includes('history.html')) return 'history';
     return 'dashboard'; // default
   }
 
@@ -376,6 +377,17 @@
   let currentPage = 1;
   let currentStatus = 'recent';
 
+  // New state for completed page filters and sorting
+  let completedFilterPriority = '';
+  let completedFilterDepartment = '';
+  let completedSortOrder = 'createdAt_desc';
+
+  // New state for history page filters and sorting
+  let historyFilterStatus = '';
+  let historyFilterPriority = '';
+  let historyFilterDepartment = '';
+  let historySortOrder = 'createdAt_desc';
+
   function renderBoardColumns() {
     if (!recentColumn) return;
     // Clear columns
@@ -407,8 +419,293 @@
     completedList.forEach(i => completedColumn.appendChild(createIssueCard(i)));
   }
 
+  // Helper: apply filters and sorting to completed issues list
+  function getFilteredSortedCompletedIssues() {
+    let filtered = issues.filter(i => i.status === 'completed');
+
+    if (completedFilterPriority) {
+      filtered = filtered.filter(i => i.priority === completedFilterPriority);
+    }
+    if (completedFilterDepartment) {
+      filtered = filtered.filter(i => i.department === completedFilterDepartment);
+    }
+
+    switch (completedSortOrder) {
+      case 'createdAt_asc':
+        filtered.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        break;
+      case 'createdAt_desc':
+        filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        break;
+      case 'priority_asc':
+        filtered.sort((a, b) => (PRIORITY_RANK[a.priority] || 0) - (PRIORITY_RANK[b.priority] || 0));
+        break;
+      case 'priority_desc':
+        filtered.sort((a, b) => (PRIORITY_RANK[b.priority] || 0) - (PRIORITY_RANK[a.priority] || 0));
+        break;
+      case 'votes_asc':
+        filtered.sort((a, b) => (a.votes || 0) - (b.votes || 0));
+        break;
+      case 'votes_desc':
+        filtered.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  }
+
+  // Helper: apply filters and sorting to history issues list
+  function getFilteredSortedHistoryIssues() {
+    let filtered = issues;
+
+    if (historyFilterStatus) {
+      filtered = filtered.filter(i => i.status === historyFilterStatus);
+    }
+    if (historyFilterPriority) {
+      filtered = filtered.filter(i => i.priority === historyFilterPriority);
+    }
+    if (historyFilterDepartment) {
+      filtered = filtered.filter(i => i.department === historyFilterDepartment);
+    }
+
+    switch (historySortOrder) {
+      case 'createdAt_asc':
+        filtered.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        break;
+      case 'createdAt_desc':
+        filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        break;
+      case 'priority_asc':
+        filtered.sort((a, b) => (PRIORITY_RANK[a.priority] || 0) - (PRIORITY_RANK[b.priority] || 0));
+        break;
+      case 'priority_desc':
+        filtered.sort((a, b) => (PRIORITY_RANK[b.priority] || 0) - (PRIORITY_RANK[a.priority] || 0));
+        break;
+      case 'votes_asc':
+        filtered.sort((a, b) => (a.votes || 0) - (b.votes || 0));
+        break;
+      case 'votes_desc':
+        filtered.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        break;
+      case 'status_asc':
+        filtered.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+        break;
+      case 'status_desc':
+        filtered.sort((a, b) => (b.status || '').localeCompare(a.status || ''));
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  }
+
+  // Modified renderStatusPage to support filtering and sorting for completed page
+  function renderStatusPage(status) {
+    currentStatus = status;
+    const containerId = status + 'Column';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    let pagedIssues;
+    let totalIssues;
+
+    if (status === 'completed') {
+      const filteredSorted = getFilteredSortedCompletedIssues();
+      totalIssues = filteredSorted.length;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      pagedIssues = filteredSorted.slice(start, start + PAGE_SIZE);
+    } else {
+      const allIssues = sortIssuesForColumn(issues, status);
+      totalIssues = allIssues.length;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      pagedIssues = allIssues.slice(start, start + PAGE_SIZE);
+    }
+
+    container.innerHTML = '';
+    pagedIssues.forEach(issue => container.appendChild(createIssueCard(issue)));
+
+    renderPaginationControls(totalIssues, currentPage, (newPage) => {
+      currentPage = newPage;
+      renderStatusPage(status);
+    });
+  }
+
+  // Export filtered completed issues as CSV
+  function exportCompletedIssues() {
+    const data = getFilteredSortedCompletedIssues();
+    if (!data.length) {
+      notify('No data to export');
+      return;
+    }
+
+    const headers = ['ID', 'Type', 'Description', 'Location', 'Latitude', 'Longitude', 'Votes', 'Priority', 'Status', 'Department', 'Expense', 'Created At'];
+    const rows = data.map(issue => [
+      issue.id,
+      issue.type,
+      issue.description.replace(/[\n\r]+/g, ' '),
+      issue.location,
+      issue.coordinates?.lat || '',
+      issue.coordinates?.lng || '',
+      issue.votes || 0,
+      issue.priority,
+      issue.status,
+      issue.department,
+      issue.expense || 0,
+      new Date(issue.createdAt).toLocaleString()
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `completed_issues_${Date.now()}.csv`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Export filtered history issues as CSV
+  function exportHistoryIssues() {
+    const data = getFilteredSortedHistoryIssues();
+    if (!data.length) {
+      notify('No data to export');
+      return;
+    }
+
+    const headers = ['ID', 'Type', 'Description', 'Location', 'Latitude', 'Longitude', 'Votes', 'Priority', 'Status', 'Department', 'Expense', 'Created At'];
+    const rows = data.map(issue => [
+      issue.id,
+      issue.type,
+      issue.description.replace(/[\n\r]+/g, ' '),
+      issue.location,
+      issue.coordinates?.lat || '',
+      issue.coordinates?.lng || '',
+      issue.votes || 0,
+      issue.priority,
+      issue.status,
+      issue.department,
+      issue.expense || 0,
+      new Date(issue.createdAt).toLocaleString()
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `history_issues_${Date.now()}.csv`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Setup event listeners for completed page controls
+  function setupCompletedPageControls() {
+    const filterPriorityEl = document.getElementById('filterPriority');
+    const filterDepartmentEl = document.getElementById('filterDepartment');
+    const sortOrderEl = document.getElementById('sortOrder');
+    const exportBtn = document.getElementById('exportBtn');
+
+    if (filterPriorityEl) {
+      filterPriorityEl.addEventListener('change', (e) => {
+        completedFilterPriority = e.target.value;
+        currentPage = 1;
+        renderStatusPage('completed');
+      });
+    }
+    if (filterDepartmentEl) {
+      filterDepartmentEl.addEventListener('change', (e) => {
+        completedFilterDepartment = e.target.value;
+        currentPage = 1;
+        renderStatusPage('completed');
+      });
+    }
+    if (sortOrderEl) {
+      sortOrderEl.addEventListener('change', (e) => {
+        completedSortOrder = e.target.value;
+        currentPage = 1;
+        renderStatusPage('completed');
+      });
+    }
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        exportCompletedIssues();
+      });
+    }
+  }
+
+  // Setup event listeners for history page controls
+  function setupHistoryPageControls() {
+    const filterStatusEl = document.getElementById('filterStatus');
+    const filterPriorityEl = document.getElementById('filterPriority');
+    const filterDepartmentEl = document.getElementById('filterDepartment');
+    const sortOrderEl = document.getElementById('sortOrder');
+    const exportBtn = document.getElementById('exportBtn');
+
+    if (filterStatusEl) {
+      filterStatusEl.addEventListener('change', (e) => {
+        historyFilterStatus = e.target.value;
+        currentPage = 1;
+        renderStatusPage('history');
+      });
+    }
+    if (filterPriorityEl) {
+      filterPriorityEl.addEventListener('change', (e) => {
+        historyFilterPriority = e.target.value;
+        currentPage = 1;
+        renderStatusPage('history');
+      });
+    }
+    if (filterDepartmentEl) {
+      filterDepartmentEl.addEventListener('change', (e) => {
+        historyFilterDepartment = e.target.value;
+        currentPage = 1;
+        renderStatusPage('history');
+      });
+    }
+    if (sortOrderEl) {
+      sortOrderEl.addEventListener('change', (e) => {
+        historySortOrder = e.target.value;
+        currentPage = 1;
+        renderStatusPage('history');
+      });
+    }
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        exportHistoryIssues();
+      });
+    }
+  }
+
+  // Call setupCompletedPageControls during init if on completed page
+  const originalInit = init;
+  init = function() {
+    originalInit();
+    if (getCurrentPageType() === 'completed') {
+      setupCompletedPageControls();
+    }
+    if (getCurrentPageType() === 'history') {
+      setupHistoryPageControls();
+    }
+  };
+
   // Pagination helpers for status pages
   function getIssuesByStatusPaged(status, page = 1) {
+    if (status === 'history') {
+      const filteredSorted = getFilteredSortedHistoryIssues();
+      const start = (page - 1) * PAGE_SIZE;
+      return filteredSorted.slice(start, start + PAGE_SIZE);
+    }
     const allIssues = sortIssuesForColumn(issues, status);
     const start = (page - 1) * PAGE_SIZE;
     return allIssues.slice(start, start + PAGE_SIZE);
@@ -447,11 +744,29 @@
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const pagedIssues = getIssuesByStatusPaged(status, currentPage);
+    let pagedIssues;
+    let totalIssues;
+
+    if (status === 'completed') {
+      const filteredSorted = getFilteredSortedCompletedIssues();
+      totalIssues = filteredSorted.length;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      pagedIssues = filteredSorted.slice(start, start + PAGE_SIZE);
+    } else if (status === 'history') {
+      const filteredSorted = getFilteredSortedHistoryIssues();
+      totalIssues = filteredSorted.length;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      pagedIssues = filteredSorted.slice(start, start + PAGE_SIZE);
+    } else {
+      const allIssues = sortIssuesForColumn(issues, status);
+      totalIssues = allIssues.length;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      pagedIssues = allIssues.slice(start, start + PAGE_SIZE);
+    }
+
     container.innerHTML = '';
     pagedIssues.forEach(issue => container.appendChild(createIssueCard(issue)));
 
-    const totalIssues = issues.filter(i => i.status === status).length;
     renderPaginationControls(totalIssues, currentPage, (newPage) => {
       currentPage = newPage;
       renderStatusPage(status);
@@ -1112,7 +1427,16 @@
   }
 
   // Clean up
-  window.addEventListener('beforeunload', stopRealtime);
+  window.addEventListener('beforeunload', async () => {
+    if (username) {
+      try {
+        await window.dataService.logLogout(username);
+      } catch (e) {
+        console.error('Failed to log logout on close:', e);
+      }
+    }
+    stopRealtime();
+  });
 
   // Boot
   if (document.readyState === 'loading') {

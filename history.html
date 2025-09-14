@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Completed Issues - MapMyIssues Dashboard</title>
+  <title>Issue History - MapMyIssues Dashboard</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -22,6 +22,15 @@
 
     <section class="right-panel">
       <div class="board-controls" style="margin-bottom: 1em; display: flex; gap: 1em; flex-wrap: wrap; align-items: center;">
+        <label for="filterStatus">Filter by Status:</label>
+        <select id="filterStatus" name="filterStatus">
+          <option value="">All</option>
+          <option value="recent">Recent</option>
+          <option value="queue">Queue</option>
+          <option value="inprogress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+
         <label for="filterPriority">Filter by Priority:</label>
         <select id="filterPriority" name="filterPriority">
           <option value="">All</option>
@@ -52,15 +61,17 @@
           <option value="priority_asc">Priority Low to High</option>
           <option value="votes_desc">Votes High to Low</option>
           <option value="votes_asc">Votes Low to High</option>
+          <option value="status_asc">Status A-Z</option>
+          <option value="status_desc">Status Z-A</option>
         </select>
 
         <button id="exportBtn" class="btn-secondary" style="margin-left:auto;">Export Data</button>
       </div>
 
       <div class="board-columns">
-        <div class="board-column" data-status="completed">
-          <h2>Completed Issues</h2>
-          <div class="cards-container" id="completedColumn"></div>
+        <div class="board-column" data-status="history">
+          <h2>All Issues</h2>
+          <div class="cards-container" id="historyColumn"></div>
           <div class="pagination-controls" id="paginationControls"></div>
         </div>
       </div>
