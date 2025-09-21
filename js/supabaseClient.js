@@ -7,7 +7,19 @@ function getSupabase() {
   if (!supabase) {
     // globalThis.supabase is provided by the CDN script
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      realtime: { params: { eventsPerSecond: 5 } }
+      realtime: {
+        params: {
+          eventsPerSecond: 5
+        }
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'civic-issues-app'
+        }
+      }
     });
   }
   return supabase;

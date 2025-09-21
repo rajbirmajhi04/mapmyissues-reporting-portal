@@ -1,7 +1,5 @@
-
+ 
 const SUPABASE_BUCKET = 'issue-photos';
-const CACHE_KEY = 'issues_cache';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 function mapDbIssueToClient(issueRow, userVotedIssues, username) { // raw database row (issueRow) to a format that the frontend can use directly.
   const votedBy = userVotedIssues.has(issueRow.id) ? [username] : [];
@@ -23,20 +21,10 @@ function mapDbIssueToClient(issueRow, userVotedIssues, username) { // raw databa
   };
 }
 
-async function fetchAllIssuesWithVotes(username, force = false) { // Fetching all issues with votes, optimized with caching and aggregations
-  if (!force) {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < CACHE_DURATION) {
-        return data;
-      }
-    }
-  }
-
+async function fetchAllIssuesWithVotes(username) {
   const sb = getSupabase();
   const [issuesRes, votesRes] = await Promise.all([
-    sb.from('issues').select('*, votes(count)').order('created_at', { ascending: false }),
+    sb.from('issues').select('*').order('created_at', { ascending: false }),
     sb.from('votes').select('issue_id').eq('user_name', username)
   ]);
   if (issuesRes.error) throw issuesRes.error;
@@ -45,8 +33,6 @@ async function fetchAllIssuesWithVotes(username, force = false) { // Fetching al
   const userVotedIssues = new Set(votesRes.data.map(v => v.issue_id));
 
   const result = (issuesRes.data || []).map(row => mapDbIssueToClient(row, userVotedIssues, username));
-
-  localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, timestamp: Date.now() }));
 
   return result;
 }
@@ -122,14 +108,8 @@ async function logLogout(username) {
 function subscribeRealtime(onChange) {
   const sb = getSupabase();
   const channel = sb.channel('issues-and-votes');
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, () => {
-    localStorage.removeItem(CACHE_KEY);
-    onChange();
-  });
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, () => {
-    localStorage.removeItem(CACHE_KEY);
-    onChange();
-  });
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, onChange);
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, onChange);
   channel.subscribe();
   return () => sb.removeChannel(channel);
 }
