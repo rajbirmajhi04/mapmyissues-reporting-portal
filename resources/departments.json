@@ -1,0 +1,18 @@
+[
+  {"dept":"Housing & Urban Development Department","code":"H&UD","issues":["municipal services","solid waste","sanitation","urban planning","ULB grievances"]},
+  {"dept":"Directorate of Municipal Administration","code":"DMA","issues":["street cleaning","drains","streetlights","licensing","property tax"]},
+  {"dept":"Orissa Water Supply & Sewerage Board (OWSSB)","code":"OWSSB","issues":["sewerage","sewer rehabilitation","major sanitation projects"]},
+  {"dept":"Public Health Engineering Organization (PHEO)","code":"PHEO","issues":["piped water supply","water quality","leakages","supply disruptions"]},
+  {"dept":"Public Works / Works Department (PWD)","code":"PWD","issues":["road maintenance","potholes","bridges","cross-drainage"]},
+  {"dept":"Water Resources Department","code":"WRD","issues":["river embankments","urban flooding","storm drainage"]},
+  {"dept":"Revenue & Disaster Management","code":"RDM","issues":["disaster relief","post-disaster infrastructure repair","emergency coordination"]},
+  {"dept":"Panchayati Raj & Drinking Water","code":"PRDW","issues":["rural water supply","rural sanitation","panchayat-level civic works"]},
+  {"dept":"Forest, Environment & Climate Change","code":"FECC","issues":["pollution complaints","tree/greenbelt issues","environmental violations"]},
+  {"dept":"Health & Family Welfare","code":"HFW","issues":["vector control","sanitation health hazards","public health outbreaks"]},
+  {"dept":"Energy Department / Distribution Utilities","code":"ENERGY","issues":["streetlight outages","public electrical hazards","power outages affecting civic services"]},
+  {"dept":"Transport / Commerce & Transport","code":"TRANSPORT","issues":["traffic management","abandoned vehicles","parking hazards"]},
+  {"dept":"Home / Police / Traffic Police","code":"HOME","issues":["encroachments requiring enforcement","public safety","traffic enforcement"]},
+  {"dept":"Development Authorities (BDA/CDA etc.)","code":"DA","issues":["illegal construction","planning violations","park maintenance in development areas"]},
+  {"dept":"Odisha Urban Housing Mission / State Housing Board","code":"OUHM","issues":["public housing maintenance","allotment complaints","slum-upgrade civic issues"]},
+  {"dept":"ULB Solid Waste / Sanitation Cells","code":"SWM","issues":["garbage collection lapses","illegal dumping","dump site complaints"]}
+]
