@@ -13,12 +13,13 @@
     <h1>Portal Login</h1>
     <form id="loginForm" class="login-form" autocomplete="off">
       <label for="username">Username</label>
-      <input type="text" id="username" name="username" placeholder="citizen1 or admin1" required />
+      <input type="text" id="username" name="username" placeholder="Enter your username" required />
       <label for="role">Role</label>
       <select id="role" name="role" required>
         <option value="" disabled selected>Select role</option>
         <option value="citizen">Citizen</option>
         <option value="admin">Admin</option>
+        <option value="department">Department</option>
       </select>
       <label for="district" id="districtLabel" style="display:none;">District</label>
       <select id="district" name="district" style="display:none;">
@@ -28,9 +29,13 @@
       <select id="town" name="town" style="display:none;">
         <option value="" disabled selected>Select town</option>
       </select>
+      <label for="department" id="departmentLabel" style="display:none;">Department</label>
+      <select id="department" name="department" style="display:none;">
+        <option value="" disabled selected>Select department</option>
+      </select>
+      <div id="departmentCodeDisplay" style="display:none; margin-top: 8px; font-weight: bold;"></div>
       <button type="submit" class="btn-primary">Login</button>
     </form>
-    <p class="demo-note">Use username <code>citizen1</code> or <code>admin1</code> with matching role.</p>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
