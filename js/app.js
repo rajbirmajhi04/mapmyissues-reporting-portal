@@ -12,12 +12,12 @@
   ];
 
   const ISSUE_TYPES = {
-    roads: ["pothole", "sidewalk damage"],
-    utilities: ["water leak", "streetlight", "traffic signal"],
-    sanitation: ["garbage", "drainage"],
-    public_space: ["parks maintenance", "graffiti"],
-    environment: ["noise complaint"],
-    others: ["others"]
+    roads: ["pothole", "sidewalk damage", "traffic management", "abandoned vehicles", "parking hazards"],
+    utilities: ["water leak", "streetlight", "traffic signal", "streetlights", "piped water supply", "water quality", "leakages", "supply disruptions", "streetlight outages", "public electrical hazards", "power outages affecting civic services"],
+    sanitation: ["garbage", "drainage", "solid waste", "sanitation", "street cleaning", "drains", "sewerage", "sewer rehabilitation", "major sanitation projects", "rural sanitation", "vector control", "sanitation health hazards", "garbage collection lapses", "illegal dumping", "dump site complaints"],
+    public_space: ["parks maintenance", "graffiti", "park maintenance in development areas"],
+    environment: ["noise complaint", "pollution complaints", "tree/greenbelt issues", "environmental violations", "river embankments", "urban flooding", "storm drainage"],
+    others: ["others", "municipal services", "urban planning", "ULB grievances", "licensing", "property tax", "disaster relief", "post-disaster infrastructure repair", "emergency coordination", "rural water supply", "panchayat-level civic works", "public health outbreaks", "illegal construction", "planning violations", "public housing maintenance", "allotment complaints", "slum-upgrade civic issues"]
   };
 
   const STATUS_ORDER = ['recent', 'queue', 'inprogress', 'completed'];
@@ -32,14 +32,22 @@
   const PRIORITY_RANK = { urgent: 3, immediate: 2, medium: 1, low: 0 };
 
   const DEPARTMENTS = [
-    "Roads / Road Maintenance / Bridges / National Highways - Works Department, Govt. of Odisha",
-    "Rural Roads / Minor Roads - Rural Development Department",
-    "Traffic Law & Enforcement - Bhubaneswar–Cuttack Police Commissionerate",
-    "Urban Planning & Infrastructure Development - Bhubaneswar Development Authority (BDA)",
-    "Water Supply & Sewerage / Urban Water Issues - Public Health Engineering Organisation (PHEO)",
-    "Water Resources / Dams / Irrigation etc. - Department of Water Resources, Odisha",
-    "Drainage / Stormwater / Flooding / Water logging in city - Bhubaneswar Municipal Corporation",
-    "Disaster / Emergency Situations (floods etc.) - Odisha State Disaster Management Authority"
+    "Housing & Urban Development Department",
+    "Directorate of Municipal Administration",
+    "Orissa Water Supply & Sewerage Board (OWSSB)",
+    "Public Health Engineering Organization (PHEO)",
+    "Public Works / Works Department (PWD)",
+    "Water Resources Department",
+    "Revenue & Disaster Management",
+    "Panchayati Raj & Drinking Water",
+    "Forest, Environment & Climate Change",
+    "Health & Family Welfare",
+    "Energy Department / Distribution Utilities",
+    "Transport / Commerce & Transport",
+    "Home / Police / Traffic Police",
+    "Development Authorities (BDA/CDA etc.)",
+    "Odisha Urban Housing Mission / State Housing Board",
+    "ULB Solid Waste / Sanitation Cells"
   ];
 
   /* ===========================
