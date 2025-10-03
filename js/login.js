@@ -57,7 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const districtLabel = document.getElementById('districtLabel');
     const townLabel = document.getElementById('townLabel');
     const departmentLabel = document.getElementById('departmentLabel');
+    const usernameLabel = document.querySelector('label[for="username"]');
+    const usernameInput = document.getElementById('username');
     if (roleSelect.value === 'citizen') {
+      usernameLabel.textContent = 'Username or Email';
+      usernameInput.placeholder = 'Enter your username or email';
       loginContainer.style.width = '400px';
       districtLabel.style.display = 'block';
       districtSelect.style.display = 'block';
@@ -75,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
         districtSelect.appendChild(option);
       });
     } else if (roleSelect.value === 'department') {
+      usernameLabel.textContent = 'Department Code';
+      usernameInput.placeholder = 'Enter your department code';
       loginContainer.style.width = '400px';
       districtLabel.style.display = 'none';
       districtSelect.style.display = 'none';
@@ -91,7 +97,20 @@ document.addEventListener('DOMContentLoaded', () => {
         option.textContent = dept.dept;
         departmentSelect.appendChild(option);
       });
+    } else if (roleSelect.value === 'admin') {
+      usernameLabel.textContent = 'Admin Name';
+      usernameInput.placeholder = 'Enter admin name';
+      loginContainer.style.width = '400px';
+      districtLabel.style.display = 'none';
+      districtSelect.style.display = 'none';
+      townLabel.style.display = 'none';
+      townSelect.style.display = 'none';
+      departmentLabel.style.display = 'none';
+      departmentSelect.style.display = 'none';
+      departmentCodeDisplay.style.display = 'none';
     } else {
+      usernameLabel.textContent = 'Username or Email';
+      usernameInput.placeholder = 'Enter your username or email';
       loginContainer.style.width = '400px';
       districtLabel.style.display = 'none';
       districtSelect.style.display = 'none';
@@ -149,9 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    const username = e.target.username.value.trim();
+    const userIdentifier = e.target.username.value.trim();
     const password = e.target.password.value;
     const role = e.target.role.value;
+
+    // Helper function to check if string is email
+    const isEmail = (str) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(str);
+    };
 
     if (role === 'citizen') {
       const district = e.target.district.value;
@@ -171,14 +196,27 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.setItem('department', department);
     }
 
-    const isValidCitizen = role === 'citizen' && username.length > 0 && password.length > 0; // any username and password allowed for citizen
-    const isValidAdmin = role === 'admin' && /^admin\d+$/.test(username.toLowerCase()) && password.length > 0;
-    const isValidDepartment = role === 'department' && departments.some(dept => dept.code.toLowerCase() === username.toLowerCase()) && password.length > 0;
+    // Validation logic updated to accept username or email for citizen and admin
+    let isValidCitizen = false;
+    let isValidAdmin = false;
+    let isValidDepartment = false;
+
+    if (role === 'citizen') {
+      isValidCitizen = userIdentifier.length > 0 && password.length > 0;
+    } else if (role === 'admin') {
+      // Admin username pattern or admin email pattern
+      const adminUsernamePattern = /^admin\d+$/;
+      if ((adminUsernamePattern.test(userIdentifier.toLowerCase()) || isEmail(userIdentifier)) && password.length > 0) {
+        isValidAdmin = true;
+      }
+    } else if (role === 'department') {
+      isValidDepartment = departments.some(dept => dept.code.toLowerCase() === userIdentifier.toLowerCase()) && password.length > 0;
+    }
 
     if (isValidCitizen || isValidAdmin || isValidDepartment) {
-    try {
-        await dataService.logLogin(username, role, password);
-        sessionStorage.setItem('username', username);
+      try {
+        await dataService.logLogin(userIdentifier, role, password);
+        sessionStorage.setItem('username', userIdentifier);
         sessionStorage.setItem('role', role);
         window.location.href = 'dashboard.html';
       } catch (error) {
@@ -187,13 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
           alert('Login failed: ' + error.message);
         } else {
           alert('Login successful, but failed to record in database. Proceeding to dashboard.');
-          sessionStorage.setItem('username', username);
+          sessionStorage.setItem('username', userIdentifier);
           sessionStorage.setItem('role', role);
           window.location.href = 'dashboard.html';
         }
       }
     } else {
-      alert('Invalid username, password, or role combination. Please check your credentials.');
+      alert('Invalid username/email, password, or role combination. Please check your credentials.');
     }
   });
 
