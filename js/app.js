@@ -4,6 +4,7 @@
      =========================== */
   const AUTOSUGGEST_DEBOUNCE_MS = 300;
   const DUPLICATE_DISTANCE_THRESHOLD = 0.0005;
+  const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
   const LOCATION_SUGGESTIONS = [
     'Janpath Road','Sahid Nagar','Nayapalli','Jaydev Vihar','Chandrasekharpur','Khandagiri',
@@ -42,7 +43,7 @@
     "Panchayati Raj & Drinking Water",
     "Forest, Environment & Climate Change",
     "Health & Family Welfare",
-    "Energy Department / Distribution Utilities",
+    "Energy Departmetion Utilities",
     "Transport / Commerce & Transport",
     "Home / Police / Traffic Police",
     "Development Authorities (BDA/CDA etc.)",
@@ -58,6 +59,7 @@
   let role = null;
   let autosuggestTimer = null;
   let unsubscribeRealtime = null;
+  let inactivityTimer = null;
 
   // DOM refs set in init
   let userGreetingEl, logoutBtn, leftPanel, recentColumn, queueColumn, inprogressColumn, completedColumn, insightsSection;
@@ -118,6 +120,20 @@
   function capitalize(s = '') {
     if (!s) return '';
     return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(async () => {
+      // Auto logout due to inactivity
+      try {
+        await window.dataService.logLogout(username);
+      } catch (error) {
+        console.error('Failed to log logout on inactivity:', error);
+      }
+      sessionStorage.clear();
+      window.location.href = 'index.html';
+    }, INACTIVITY_TIMEOUT_MS);
   }
 
   function priorityClass(priority) {
@@ -1314,6 +1330,7 @@
     // logout
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
+        clearTimeout(inactivityTimer);
         try {
           await window.dataService.logLogout(username);
         } catch (error) {
@@ -1336,6 +1353,13 @@
     renderUI();
     setupGlobalDelegation();
     startRealtime();
+
+    // Initialize inactivity timer and event listeners
+    resetInactivityTimer();
+    document.addEventListener('mousemove', resetInactivityTimer);
+    document.addEventListener('keydown', resetInactivityTimer);
+    document.addEventListener('click', resetInactivityTimer);
+    document.addEventListener('scroll', resetInactivityTimer);
   }
 
   // Clean up
