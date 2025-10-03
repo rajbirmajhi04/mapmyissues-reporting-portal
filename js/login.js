@@ -3,7 +3,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let departments = [];
   fetch('resources/places.json')
     .then(res => res.json())
-    .then(data => places = data)
+    .then(data => {
+      places = data;
+      // Populate registration district
+      const regDistrictSelect = document.getElementById('regDistrict');
+      regDistrictSelect.innerHTML = '<option value="" disabled selected>Select district</option>';
+      places.forEach(place => {
+        const option = document.createElement('option');
+        option.value = place.district;
+        option.textContent = place.district;
+        regDistrictSelect.appendChild(option);
+      });
+    })
     .catch(err => console.error('Failed to load places:', err));
   fetch('resources/departments.json')
     .then(res => res.json())
@@ -117,6 +128,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const regDistrictSelect = document.getElementById('regDistrict');
+  const regTownSelect = document.getElementById('regTown');
+
+  regDistrictSelect.addEventListener('change', () => {
+    const selectedDistrict = places.find(p => p.district === regDistrictSelect.value);
+    regTownSelect.innerHTML = '<option value="" disabled selected>Select town</option>';
+    if (selectedDistrict) {
+      selectedDistrict.towns.forEach(town => {
+        const option = document.createElement('option');
+        option.value = town;
+        option.textContent = town;
+        regTownSelect.appendChild(option);
+      });
+    }
+  });
+
   const form = document.getElementById('loginForm');
   if (!form) return;
 
@@ -203,7 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      await dataService.registerUser(username, email, password);
+      const district = e.target.regDistrict.value;
+      const town = e.target.regTown.value;
+      if (!district || !town) {
+        alert('Please select district and town.');
+        return;
+      }
+      await dataService.registerUser(username, email, password, district, town);
       alert('Registration successful! You can now log in.');
       // Switch back to login form
       loginToggle.click();

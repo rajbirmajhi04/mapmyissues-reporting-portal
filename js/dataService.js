@@ -105,7 +105,7 @@ async function logLogout(username) {
   }
 }
 
-async function registerUser(username, email, password) {
+async function registerUser(username, email, password, district, town) {
   const sb = getSupabase();
   const { data, error } = await sb.auth.signUp({
     email: email,
@@ -113,7 +113,9 @@ async function registerUser(username, email, password) {
     options: {
       data: {
         username: username,
-        role: 'citizen'
+        role: 'citizen',
+        district: district,
+        town: town
       }
     }
   });
