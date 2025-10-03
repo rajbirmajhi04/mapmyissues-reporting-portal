@@ -105,6 +105,22 @@ async function logLogout(username) {
   }
 }
 
+async function registerUser(username, email, password) {
+  const sb = getSupabase();
+  const { data, error } = await sb.auth.signUp({
+    email: email,
+    password: password,
+    options: {
+      data: {
+        username: username,
+        role: 'citizen'
+      }
+    }
+  });
+  if (error) throw error;
+  return data;
+}
+
 function subscribeRealtime(onChange) {
   const sb = getSupabase();
   const channel = sb.channel('issues-and-votes');
@@ -123,6 +139,7 @@ window.dataService = {
   deleteIssue,
   logLogin,
   logLogout,
+  registerUser,
   subscribeRealtime
 };
 

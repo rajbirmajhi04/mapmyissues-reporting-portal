@@ -10,6 +10,29 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => departments = data)
     .catch(err => console.error('Failed to load departments:', err));
 
+  // Form toggle functionality
+  const loginToggle = document.getElementById('loginToggle');
+  const registerToggle = document.getElementById('registerToggle');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const formTitle = document.getElementById('formTitle');
+
+  loginToggle.addEventListener('click', () => {
+    loginForm.style.display = 'flex';
+    registerForm.style.display = 'none';
+    loginToggle.classList.add('active');
+    registerToggle.classList.remove('active');
+    formTitle.textContent = 'Portal Login';
+  });
+
+  registerToggle.addEventListener('click', () => {
+    loginForm.style.display = 'none';
+    registerForm.style.display = 'flex';
+    registerToggle.classList.add('active');
+    loginToggle.classList.remove('active');
+    formTitle.textContent = 'Citizen Registration';
+  });
+
   const roleSelect = document.getElementById('role');
   const districtSelect = document.getElementById('district');
   const townSelect = document.getElementById('town');
@@ -144,6 +167,49 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       alert('Invalid username, password, or role combination. Please check your credentials.');
+    }
+  });
+
+  // Registration form handling
+  if (!registerForm) return;
+
+  registerForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = e.target.regUsername.value.trim();
+    const email = e.target.regEmail.value.trim();
+    const password = e.target.regPassword.value;
+    const confirmPassword = e.target.regConfirmPassword.value;
+
+    // Validation
+    if (!username || !email || !password || !confirmPassword) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      await dataService.registerUser(username, email, password);
+      alert('Registration successful! You can now log in.');
+      // Switch back to login form
+      loginToggle.click();
+    } catch (error) {
+      console.error('Registration failed:', error);
+      alert('Registration failed: ' + (error.message || 'Unknown error'));
     }
   });
 });

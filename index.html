@@ -10,7 +10,11 @@
 </head>
 <body>
   <main class="login-container">
-    <h1>Portal Login</h1>
+    <h1 id="formTitle">Portal Login</h1>
+    <div class="form-toggle">
+      <button type="button" id="loginToggle" class="toggle-btn active">Login</button>
+      <button type="button" id="registerToggle" class="toggle-btn">Register</button>
+    </div>
     <form id="loginForm" class="login-form" autocomplete="off">
       <label for="username">Username</label>
       <input type="text" id="username" name="username" placeholder="Enter your username" required />
@@ -37,6 +41,18 @@
       </select>
       <div id="departmentCodeDisplay" style="display:none; margin-top: 8px; font-weight: bold;"></div>
       <button type="submit" class="btn-primary">Login</button>
+    </form>
+
+    <form id="registerForm" class="login-form" autocomplete="off" style="display:none;">
+      <label for="regUsername">Username</label>
+      <input type="text" id="regUsername" name="regUsername" placeholder="Enter your username" required />
+      <label for="regEmail">Email</label>
+      <input type="email" id="regEmail" name="regEmail" placeholder="Enter your email" required />
+      <label for="regPassword">Password</label>
+      <input type="password" id="regPassword" name="regPassword" placeholder="Enter your password" required />
+      <label for="regConfirmPassword">Confirm Password</label>
+      <input type="password" id="regConfirmPassword" name="regConfirmPassword" placeholder="Confirm your password" required />
+      <button type="submit" class="btn-primary">Register</button>
     </form>
   </main>
 
