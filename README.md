@@ -10,7 +10,7 @@ Map My Issue is a community-driven platform that bridges the gap between citizen
 
 **🔑 Demo Accounts**
 Citizen: citizen1 / citizen123
-Admin: admin1 / admin123
+Admin: admin.john / admin123
 
 **🛠️ Tech Stack 🛠️**
 Frontend: HTML & CSS.

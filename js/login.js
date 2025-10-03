@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
       isValidCitizen = userIdentifier.length > 0 && password.length > 0;
     } else if (role === 'admin') {
       // Admin username pattern or admin email pattern
-      const adminUsernamePattern = /^admin\d+$/;
+      const adminUsernamePattern = /^admin\..+$/;
       if ((adminUsernamePattern.test(userIdentifier.toLowerCase()) || isEmail(userIdentifier)) && password.length > 0) {
         isValidAdmin = true;
       }
