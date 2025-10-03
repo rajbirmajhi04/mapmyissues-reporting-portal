@@ -5,7 +5,7 @@ Map My Issue is a community-driven platform that bridges the gap between citizen
 **🚀 Features 🚀**
 👤 Citizen Portal – Report issues with categories like Roads, Street Lighting, and Waste.
 🗂️ Admin Portal – View, manage, and update reported issues.
-💾 Backend Support – Supabase is used.
+💾 Backend Support – Local storage for data persistence.
 📱 Responsive Design – Mobile-first, works seamlessly on any device.
 
 **🔑 Demo Accounts**
@@ -13,8 +13,8 @@ Citizen: citizen1 / citizen123
 Admin: admin.john / admin123
 
 **🛠️ Tech Stack 🛠️**
-Frontend: HTML & CSS.
-Backend: Supabase & JAvascript.
+Frontend: HTML & CSS & JavaScript.
+Backend: Local Storage.
 Design Principle: Mobile First, Web Based, Simple yet responsive UI.
 
 **🌍 Vision 🌍**

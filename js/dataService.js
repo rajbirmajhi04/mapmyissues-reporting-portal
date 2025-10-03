@@ -1,135 +1,122 @@
  
-const SUPABASE_BUCKET = 'issue-photos';
+// Local storage keys
+const ISSUES_KEY = 'issues';
+const VOTES_KEY = 'votes';
+const LOGIN_LOGS_KEY = 'loginLogs';
+const USERS_KEY = 'users';
 
-function mapDbIssueToClient(issueRow, userVotedIssues, username) { // raw database row (issueRow) to a format that the frontend can use directly.
-  const votedBy = userVotedIssues.has(issueRow.id) ? [username] : [];
-  const voteCount = issueRow.votes?.[0]?.count || 0;
+function getStoredData(key) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+}
+
+function setStoredData(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function mapIssueToClient(issue, userVotedIssues, username) {
+  const votedBy = userVotedIssues.has(issue.id) ? [username] : [];
+  const voteCount = userVotedIssues.has(issue.id) ? 1 : 0; // Simplified, assuming one vote per user
   return {
-    id: issueRow.id,
-    type: issueRow.type,
-    description: issueRow.description,
-    location: issueRow.location,
-    coordinates: { lat: issueRow.latitude, lng: issueRow.longitude },
-    photo: issueRow.photo_url || '',
+    id: issue.id,
+    type: issue.type,
+    description: issue.description,
+    location: issue.location,
+    coordinates: { lat: issue.latitude, lng: issue.longitude },
+    photo: issue.photo_url || '',
     votes: voteCount,
-    priority: issueRow.priority,
-    status: issueRow.status,
-    department: issueRow.department || '',
-    expense: issueRow.expense || 0,
-    createdAt: new Date(issueRow.created_at).getTime(),
+    priority: issue.priority,
+    status: issue.status,
+    department: issue.department || '',
+    expense: issue.expense || 0,
+    createdAt: issue.created_at,
     votedBy
   };
 }
 
 async function fetchAllIssuesWithVotes(username) {
-  const sb = getSupabase();
-  const [issuesRes, votesRes] = await Promise.all([
-    sb.from('issues').select('*').order('created_at', { ascending: false }),
-    sb.from('votes').select('issue_id').eq('user_name', username)
-  ]);
-  if (issuesRes.error) throw issuesRes.error;
-  if (votesRes.error) throw votesRes.error;
+  const issues = getStoredData(ISSUES_KEY);
+  const votes = getStoredData(VOTES_KEY);
+  const userVotedIssues = new Set(votes.filter(v => v.user_name === username).map(v => v.issue_id));
 
-  const userVotedIssues = new Set(votesRes.data.map(v => v.issue_id));
-
-  const result = (issuesRes.data || []).map(row => mapDbIssueToClient(row, userVotedIssues, username));
-
+  const result = issues.map(issue => mapIssueToClient(issue, userVotedIssues, username));
   return result;
 }
 
-async function uploadPhotoIfNeeded(file) { // Uploading photos to Supabase Storage
+async function uploadPhotoIfNeeded(file) {
   if (!file || !file.size) return '';
-  const sb = getSupabase();
-  const fileExt = (file.name && file.name.split('.').pop()) || 'jpg';
-  const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-  const { error } = await sb.storage.from(SUPABASE_BUCKET).upload(filePath, file, { upsert: false });
-  if (error) throw error;
-  const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
-  return data.publicUrl;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 async function createIssue(payload) {
-  const sb = getSupabase();
-  const { data, error } = await sb.from('issues').insert([payload]).select('*').single();
-  if (error) throw error;
-  return data;
+  const issues = getStoredData(ISSUES_KEY);
+  const newIssue = { ...payload, id: Date.now().toString(), created_at: Date.now() };
+  issues.push(newIssue);
+  setStoredData(ISSUES_KEY, issues);
+  return newIssue;
 }
 
 async function addVote(issueId, userName) {
-  const sb = getSupabase();
-  // Prevent duplicate by checking existing
-  const existing = await sb.from('votes').select('*', { count: 'exact', head: true })
-    .eq('issue_id', issueId).eq('user_name', userName);
-  if (existing.error) throw existing.error;
-  if ((existing.count || 0) > 0) return { already: true };
-  const { error } = await sb.from('votes').insert([{ issue_id: issueId, user_name: userName }]);
-  if (error) throw error;
+  const votes = getStoredData(VOTES_KEY);
+  const existing = votes.find(v => v.issue_id === issueId && v.user_name === userName);
+  if (existing) return { already: true };
+  votes.push({ issue_id: issueId, user_name: userName });
+  setStoredData(VOTES_KEY, votes);
   return { ok: true };
 }
 
 async function updateIssue(issueId, fields) {
-  const sb = getSupabase();
-  const { error } = await sb.from('issues').update(fields).eq('id', issueId);
-  if (error) throw error;
+  const issues = getStoredData(ISSUES_KEY);
+  const index = issues.findIndex(i => i.id === issueId);
+  if (index !== -1) {
+    issues[index] = { ...issues[index], ...fields };
+    setStoredData(ISSUES_KEY, issues);
+  }
 }
 
 async function deleteIssue(issueId) {
-  const sb = getSupabase();
-  const { error } = await sb.from('issues').delete().eq('id', issueId);
-  if (error) throw error;
+  let issues = getStoredData(ISSUES_KEY);
+  issues = issues.filter(i => i.id !== issueId);
+  setStoredData(ISSUES_KEY, issues);
+
+  let votes = getStoredData(VOTES_KEY);
+  votes = votes.filter(v => v.issue_id !== issueId);
+  setStoredData(VOTES_KEY, votes);
 }
 
 async function logLogin(username, role) {
-  const sb = getSupabase();
-  // Insert new login record
-  const { error } = await sb.from('login_logs').insert([{ username, role }]);
-  if (error) throw error;
+  const logs = getStoredData(LOGIN_LOGS_KEY);
+  logs.push({ username, role, timestamp: new Date().toISOString() });
+  setStoredData(LOGIN_LOGS_KEY, logs);
 }
 
 async function logLogout(username) {
-  const sb = getSupabase();
-  // Update the latest active login record to set logged_out_at
-  const { data: activeLogins, error: fetchError } = await sb
-    .from('login_logs')
-    .select('*')
-    .eq('username', username)
-    .is('logged_out_at', null)
-    .order('timestamp', { ascending: false })
-  if (fetchError) throw fetchError;
-  if (activeLogins && activeLogins.length > 0) {
-    const { error } = await sb
-      .from('login_logs')
-      .update({ logged_out_at: new Date().toISOString() })
-      .eq('id', activeLogins[0].id);
-    if (error) throw error;
+  const logs = getStoredData(LOGIN_LOGS_KEY);
+  const activeLogins = logs.filter(l => l.username === username && !l.logged_out_at);
+  if (activeLogins.length > 0) {
+    activeLogins[activeLogins.length - 1].logged_out_at = new Date().toISOString();
+    setStoredData(LOGIN_LOGS_KEY, logs);
   }
 }
 
 async function registerUser(username, email, password, district, town) {
-  const sb = getSupabase();
-  const { data, error } = await sb.auth.signUp({
-    email: email,
-    password: password,
-    options: {
-      data: {
-        username: username,
-        role: 'citizen',
-        district: district,
-        town: town
-      }
-    }
-  });
-  if (error) throw error;
-  return data;
+  const users = getStoredData(USERS_KEY);
+  const existing = users.find(u => u.username === username || u.email === email);
+  if (existing) throw new Error('User already exists');
+  const newUser = { username, email, password, district, town, role: 'citizen' };
+  users.push(newUser);
+  setStoredData(USERS_KEY, users);
+  return newUser;
 }
 
 function subscribeRealtime(onChange) {
-  const sb = getSupabase();
-  const channel = sb.channel('issues-and-votes');
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, onChange);
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, onChange);
-  channel.subscribe();
-  return () => sb.removeChannel(channel);
+  // No-op for local storage
+  return () => {};
 }
 
 window.dataService = {
