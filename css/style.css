@@ -28,7 +28,7 @@ button:focus {
 
 /* Login page */
 .login-container {
-  max-width: 360px;
+  max-width: 450px;
   margin: 5vh auto;
   background: white;
   padding: 2em;

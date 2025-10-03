@@ -15,12 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const townSelect = document.getElementById('town');
   const departmentSelect = document.getElementById('department');
   const departmentCodeDisplay = document.getElementById('departmentCodeDisplay');
+  const loginContainer = document.querySelector('.login-container');
+  loginContainer.style.width = '400px';
 
   roleSelect.addEventListener('change', () => {
+    const loginContainer = document.querySelector('.login-container');
     const districtLabel = document.getElementById('districtLabel');
     const townLabel = document.getElementById('townLabel');
     const departmentLabel = document.getElementById('departmentLabel');
     if (roleSelect.value === 'citizen') {
+      loginContainer.style.width = '400px';
       districtLabel.style.display = 'block';
       districtSelect.style.display = 'block';
       townLabel.style.display = 'block';
@@ -37,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         districtSelect.appendChild(option);
       });
     } else if (roleSelect.value === 'department') {
+      loginContainer.style.width = '400px';
       districtLabel.style.display = 'none';
       districtSelect.style.display = 'none';
       townLabel.style.display = 'none';
@@ -53,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         departmentSelect.appendChild(option);
       });
     } else {
+      loginContainer.style.width = '400px';
       districtLabel.style.display = 'none';
       districtSelect.style.display = 'none';
       townLabel.style.display = 'none';
@@ -94,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const username = e.target.username.value.trim();
+    const password = e.target.password.value;
     const role = e.target.role.value;
 
     if (role === 'citizen') {
@@ -114,13 +121,13 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.setItem('department', department);
     }
 
-    const isValidCitizen = role === 'citizen' && username.length > 0; // any username allowed for citizen
-    const isValidAdmin = role === 'admin' && /^admin\d+$/.test(username.toLowerCase());
-    const isValidDepartment = role === 'department' && departments.some(dept => dept.code.toLowerCase() === username.toLowerCase());
+    const isValidCitizen = role === 'citizen' && username.length > 0 && password.length > 0; // any username and password allowed for citizen
+    const isValidAdmin = role === 'admin' && /^admin\d+$/.test(username.toLowerCase()) && password.length > 0;
+    const isValidDepartment = role === 'department' && departments.some(dept => dept.code.toLowerCase() === username.toLowerCase()) && password.length > 0;
 
     if (isValidCitizen || isValidAdmin || isValidDepartment) {
-      try {
-        await dataService.logLogin(username, role);
+    try {
+        await dataService.logLogin(username, role, password);
         sessionStorage.setItem('username', username);
         sessionStorage.setItem('role', role);
         window.location.href = 'dashboard.html';
@@ -136,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } else {
-      alert('Invalid username or role combination. Use citizen usernames for citizens, admin1, admin2, etc. for admins, or department codes for departments.');
+      alert('Invalid username, password, or role combination. Please check your credentials.');
     }
   });
 });
