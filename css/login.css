@@ -1,0 +1,21 @@
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+.login-form label {
+  text-align: left;
+  font-weight: 600;
+}
+.login-form input,
+.login-form select {
+  padding: 0.5em;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.login-form input:focus,
+.login-form select:focus {
+  border-color: #005fcc;
+  outline: none;
+}
