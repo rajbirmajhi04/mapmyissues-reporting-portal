@@ -138,14 +138,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+
   const form = document.getElementById('loginForm');
   if (!form) return;
+
+  const loginError = document.getElementById('loginError');
+  const loginButton = form.querySelector('button[type="submit"]');
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const userIdentifier = e.target.username.value.trim();
     const password = e.target.password.value;
     const role = e.target.role.value;
+
+    // Clear previous error
+    loginError.textContent = '';
+    loginError.style.display = 'none';
 
     // Helper function to check if string is email
     const isEmail = (str) => {
@@ -157,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const district = e.target.district.value;
       const town = e.target.town.value;
       if (!district || !town) {
-        alert('Please select district and town.');
+        loginError.textContent = 'Please select district and town.';
+        loginError.style.display = 'block';
         return;
       }
       sessionStorage.setItem('district', district);
@@ -165,7 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (role === 'department') {
       const department = e.target.department.value;
       if (!department) {
-        alert('Please select a department.');
+        loginError.textContent = 'Please select a department.';
+        loginError.style.display = 'block';
         return;
       }
       sessionStorage.setItem('department', department);
@@ -190,6 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (isValidCitizen || isValidAdmin || isValidDepartment) {
       try {
+        // Loading state
+        loginButton.disabled = true;
+        loginButton.textContent = 'Logging in...';
+
         await dataService.logLogin(userIdentifier, role, password);
         sessionStorage.setItem('username', userIdentifier);
         sessionStorage.setItem('role', role);
@@ -197,16 +212,49 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) {
         console.error('Failed to log login:', error);
         if (error.message === 'User is already logged in from another session.') {
-          alert('Login failed: ' + error.message);
+          loginError.textContent = 'Login failed: ' + error.message;
+          loginError.style.display = 'block';
         } else {
-          alert('Login successful, but failed to record in database. Proceeding to dashboard.');
+          loginError.textContent = 'Login successful, but failed to record in database. Proceeding to dashboard.';
+          loginError.style.display = 'block';
+          loginError.style.color = '#28a745';
           sessionStorage.setItem('username', userIdentifier);
           sessionStorage.setItem('role', role);
-          window.location.href = 'dashboard.html';
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 2000);
         }
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = 'Login';
       }
     } else {
-      alert('Invalid username/email, password, or role combination. Please check your credentials.');
+      loginError.textContent = 'Invalid username/email, password, or role combination. Please check your credentials.';
+      loginError.style.display = 'block';
     }
   });
+
+  // Forgot Password button functionality
+  const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+  forgotPasswordBtn.addEventListener('click', () => {
+    const email = prompt('Enter your email address to reset your password:');
+    if (email) {
+      alert('Password reset link has been sent to your email.');
+      // Here you can add logic to send reset email
+    }
+  });
+
+  // Simulate fetching total users count
+  setTimeout(() => {
+    const totalUsersCount = Math.floor(Math.random() * (1000000 - 10000 + 1)) + 10000; // Random number between 10000 and 1000000
+    let formattedCount;
+    if (totalUsersCount >= 100000) {
+      formattedCount = Math.floor(totalUsersCount / 100000) + ' Lakh +';
+    } else if (totalUsersCount >= 10000) {
+      formattedCount = Math.floor(totalUsersCount / 1000) + ' K +';
+    } else {
+      formattedCount = totalUsersCount + ' +';
+    }
+    document.getElementById('totalUsersCount').textContent = formattedCount;
+  }, 1000); // Simulate delay
 });

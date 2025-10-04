@@ -1,19 +1,19 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5em;
-  padding: 1em 0;
+  gap: 1em;
+  padding: 0.5em 0;
 }
 .login-form label {
   text-align: left;
   font-weight: 600;
   color: #333;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.25em;
 }
 .login-form input,
 .login-form select {
-  padding: 0.75em;
-  font-size: 1em;
+  padding: 0.5em;
+  font-size: 0.9em;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -32,8 +32,8 @@
 .btn-primary {
   background-color: #005fcc;
   color: white;
-  padding: 0.75em 1.5em;
-  font-size: 1em;
+  padding: 0.5em 1em;
+  font-size: 0.9em;
   font-weight: 600;
   border: none;
   border-radius: 8px;
@@ -51,4 +51,36 @@
 }
 .btn-primary:focus {
   outline: none;
+}
+.error-message {
+  color: #dc3545;
+  font-size: 0.9em;
+  margin-top: 0.5em;
+  display: none;
+}
+.valid {
+  border-color: #28a745;
+}
+.invalid {
+  border-color: #dc3545;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: #005fcc;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 0.5em;
+  padding: 0;
+  text-decoration: underline;
+}
+.btn-link:hover {
+  color: #004bb5;
+}
+.total-users-section {
+  margin-top: 1em;
+  font-size: 1em;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
 }

@@ -42,7 +42,9 @@
         <option value="" disabled selected>Select department</option>
       </select>
       <div id="departmentCodeDisplay" style="display:none; margin-top: 8px; font-weight: bold;"></div>
+      <div id="loginError" class="error-message"></div>
       <button type="submit" class="btn-primary">Login</button>
+      <button type="button" id="forgotPasswordBtn" class="btn-link">Forgot Password?</button>
     </form>
 
     <form id="registerForm" class="register-form" autocomplete="off" style="display:none;">
@@ -62,8 +64,12 @@
       <select id="regTown" name="regTown" required>
         <option value="" disabled selected>Select town</option>
       </select>
+      <div id="registerError" class="error-message"></div>
       <button type="submit" class="btn-primary">Register</button>
     </form>
+    <div id="totalUsersSection" class="total-users-section">
+      Our Community: <span id="totalUsersCount">Loading...</span>
+    </div>
   </main>
 
   <script src="js/dataService.js"></script>
